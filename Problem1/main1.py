@@ -82,26 +82,33 @@ def disparity_map(img1: np.ndarray, img2: np.ndarray, janela: Tuple[int, int] = 
     img1_gray = cv2.cvtColor(img1, cv2.COLOR_BGR2GRAY)
     img2_gray = cv2.cvtColor(img2, cv2.COLOR_BGR2GRAY)
 
-    h, w = img1_gray.shape  # height and width
+    h, w = img2_gray.shape  # height and width
     jx, jy = janela[0] // 2, janela[1] // 2  # half-janela
-    disparityMap = np.empty(img1_gray.shape, dtype=img1_gray.dtype)
     iterator = min(jx, 5)   # tamanho para percorrer as janelas
 
+    img1_gray_mod = np.zeros((img1_gray.shape[0] + 2 * jy, img1_gray.shape[1] + 2 * jx), dtype=img1_gray.dtype)
+    img1_gray_mod[jy:jy + h, jx:jx + w] = img1_gray
+
+    img2_gray_mod = np.zeros((img2_gray.shape[0] + 2*jy, img2_gray.shape[1] + 2*jx), dtype=img2_gray.dtype)
+    img2_gray_mod[jy:jy+h, jx:jx+w] = img2_gray
+
+    disparityMap = np.empty(img1_gray_mod.shape, dtype=img1_gray.dtype)
+    h_, w_ = img1_gray_mod.shape
     # ProgressBar
     max_val_bar = 100
     bar = progressbar.ProgressBar(maxval=max_val_bar,
                                   widgets=[progressbar.Bar('=', '[', ']'), ' ', progressbar.Percentage()])
     bar.start()
     # iy, ix, they are the beginning of the coordinates to make the crop
-    for y_ in range(0, h, iterator):
+    for y_ in range(jy, h_-jy, iterator):
         iy = y_ - jy
-        for x_ in range(0, w, iterator):  # To avoid conflicts
-            ix_0 = x_ - jy
-            a = crop_img(img1_gray, (iy, ix_0), janela)
+        for x_ in range(jx, w_-jx, iterator):  # To avoid conflicts
+            ix_0 = x_ - jx
+            a = crop_img(img1_gray_mod, (iy, ix_0), janela)
             r_ssd, x_min = 9999, 0  # infinite
-            for k in range(0, w, iterator):  # Percorrer vertically in the second image
+            for k in range(jx, w_-jx, iterator):  # Percorrer vertically in the second image
                 ix = k - jx
-                b = crop_img(img2_gray, (iy, ix), janela)
+                b = crop_img(img2_gray_mod, (iy, ix), janela)
 
             #    s = sad(a, b)
             #    if s < r_ssd:
@@ -110,13 +117,14 @@ def disparity_map(img1: np.ndarray, img2: np.ndarray, janela: Tuple[int, int] = 
             #            break       # the closest match is found
             #d = abs(x_min - x_)
                 i,j =0,0
-                for y_p in range(y_, min(y_+janela[1], h)):
+                for y_p in range(iy, min(y_+janela[1], h_)):
                     i = 0
-                    for x_p in range(k, min(k+janela[0], w)):
+                    for x_p in range(ix, min(k+janela[0], w_)):
                         if j<b.shape[0] and i<b.shape[1]:
                             disparityMap[y_p][x_p] = b[j][i]
                         i = i+1
                     j = j+1
+
             break
         bar.update((y_ / w) * max_val_bar)
     bar.finish()
@@ -137,8 +145,8 @@ def execute_problem1():
     images_bgr = np.hstack((img1, img2, img1_2))
     display_img(images_bgr, "[ %s, %s and addWeight]" % (img1_name, img2_name), (1200, 400))
 
-    disparity_map(img1, img2, (15, 15))
-
+    #disparity_map(img1, img2, (15, 15))
+    disparity_map_gray_scale(img1,img2, (3, 3))
     print("Finished Problem 1...")
 
 
