@@ -110,20 +110,16 @@ def disparity_map(img1: np.ndarray, img2: np.ndarray, janela: Tuple[int, int] = 
                 ix = k - jx
                 b = crop_img(img2_gray_mod, (iy, ix), janela)
 
-            #    s = sad(a, b)
-            #    if s < r_ssd:
-            #        r_ssd, x_min = s, k
-            #        if s == 0:
-            #            break       # the closest match is found
-            #d = abs(x_min - x_)
-                i,j =0,0
-                for y_p in range(iy, min(y_+janela[1], h_)):
-                    i = 0
-                    for x_p in range(ix, min(k+janela[0], w_)):
-                        if j<b.shape[0] and i<b.shape[1]:
-                            disparityMap[y_p][x_p] = b[j][i]
-                        i = i+1
-                    j = j+1
+                s = ssd(a, b)
+                if s < r_ssd:
+                    r_ssd, x_min = s, k
+                    if s == 0:
+                        break       # the closest match is found
+            d = abs(x_min - x_)
+            for y_p in range(iy, min(y_+janela[1], h_)):
+                for x_p in range(ix, min(k+janela[0], w_)):
+                    disparityMap[y_p][x_p] = d
+                    print(a)
 
             break
         bar.update((y_ / w) * max_val_bar)
@@ -145,8 +141,8 @@ def execute_problem1():
     images_bgr = np.hstack((img1, img2, img1_2))
     display_img(images_bgr, "[ %s, %s and addWeight]" % (img1_name, img2_name), (1200, 400))
 
-    #disparity_map(img1, img2, (15, 15))
-    disparity_map_gray_scale(img1,img2, (3, 3))
+    disparity_map(img1, img2, (15, 15))
+    #disparity_map_gray_scale(img1,img2, (3, 3))
     print("Finished Problem 1...")
 
 
