@@ -24,4 +24,16 @@ def crop_img(img: np.ndarray, yx_i: Tuple[int, int], size: Tuple[int, int]) -> n
     :param size: (height, width) sizes
     :return: crop image
     """
-    return img[yx_i[0]: yx_i[0] + size[0], yx_i[1]: yx_i[1] + size[1]]
+    h, w = img.shape
+    # Constraint 1
+    yh = yx_i[0] + size[0]
+    yh_ = yh if yh < h else h
+    # Constraint 2
+    xw = yx_i[1] + size[1]
+    xw_ = xw if xw < w else w
+    # Constraint 3
+    yi = yx_i[0] if yx_i[0] > 0 else 0
+    xi = yx_i[1] if yx_i[1] > 0 else 0
+
+    return img[yi: yh_, xi: xw_]
+
