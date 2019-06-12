@@ -13,8 +13,8 @@ def display_img(img: np.ndarray, title: str, resize: np.ndarray = (600, 600)) ->
     cv2.namedWindow(title, cv2.WINDOW_NORMAL)
     cv2.imshow(title, img)
     cv2.resizeWindow(title, resize[0], resize[1])
-    cv2.waitKey()
-    cv2.destroyWindow(title)
+    cv2.waitKey(0)
+    cv2.destroyAllWindows()
 
 
 def crop_img(img: np.ndarray, yx_i: Tuple[int, int], size: Tuple[int, int]) -> np.ndarray:
