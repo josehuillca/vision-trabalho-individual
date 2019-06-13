@@ -1,14 +1,17 @@
 import cv2
-from Problem1.utils import display_img, crop_img
+import time
 import numpy as np
-from typing import Tuple
 import progressbar
-import matplotlib.pyplot as plt
 
-GOOD_MATCH_PERCENT = 0.25   # porcentaje de los buenos matches a tomar en cuenta
+from math import sqrt
+from typing import Tuple
+from Problem1.utils import display_img, crop_img
+from skimage.measure import compare_ssim as ssim
+
+ITER_MIN = 5
 
 
-def ssd(a: np.ndarray, b: np.ndarray) -> float:
+def SSD(a: np.ndarray, b: np.ndarray) -> float:
     """ Sum Square Difference ('a' and 'b' have to be the same size)
     :param a: Array numpy
     :param b: Array numpy
@@ -17,182 +20,99 @@ def ssd(a: np.ndarray, b: np.ndarray) -> float:
     return ((a-b)**2).sum()
 
 
-def sad(a: np.ndarray, b: np.ndarray) -> float:
-    """ Sum of Added Difference
+def SAD(a: np.ndarray, b: np.ndarray) -> float:
+    """ Sum Add Difference ('a' and 'b' have to be the same size)
+    :param a: Array numpy
+    :param b: Array numpy
+    :return: sum square difference
+    """
+    return (abs(a-b)).sum()
+
+
+def SSIM(a: np.ndarray, b: np.ndarray) -> float:
+    """ Structural Similarity Measure (janela 7x7 a mas)
     :param a:
     :param b:
+    :return: 'ssim'  results in 1 if it is very similar, so we subtract 1,
+            because we say it is more similar when it is closer to 0.
+    """
+    return 1.0 - ssim(a, b)
+
+
+def NCC(a: np.ndarray, b: np.ndarray) -> float:
+    """ Normalized Cross Correlation ('a' and 'b' have to be the same size)
+    :param a: Array numpy normalized
+    :param b: Array numpy normalized
+    :return: 'NCC' returns a value of -1 to 1, where one is very similar,
+            we convert it to a range of 0 to 1, where 0 is very similar
+    """
+    ncc_ = (a*b).sum()/sqrt(((a**2).sum())*((b**2).sum()))
+
+    if ncc_ >= 0:
+        res = (1 - ncc_)/2.
+    else:
+        res = (ncc_ + 1)/2.
+    return res
+
+
+def SM_algorithm(a: np.ndarray, b: np.ndarray, alg: str) -> float:
+    """ Similarity Measure Algorithm
+    :param a: Array numpy
+    :param b: Array numpy
+    :param alg: Algorithm name(SSD, NC)
     :return:
     """
-    return abs(a-b).sum()
+    if alg == "SSD":
+        return SSD(a, b)
+    if alg == "SAD":
+        return SAD(a, b)
+    if alg == "SSIM":
+        return SSIM(a, b)
+    if alg == "NCC":
+        return NCC(a, b)
+    return 0
 
 
-def get_distance(img1: np.ndarray, img2: np.ndarray, display: bool=False) -> int:
-    """ Usando SIFT, calcularemos la distance de sus keypoints
-    :param img1: Input image gray-scale
-    :param img2: Input image gray-scale
-    :param display: display matches
-    :return: distancia en pixeles
-    """
-    orb = cv2.ORB_create()
-    kp1, des1 = orb.detectAndCompute(img1, None)
-    kp2, des2 = orb.detectAndCompute(img2, None)
-
-    # Brute Force Matching
-    bf = cv2.BFMatcher(cv2.NORM_HAMMING, crossCheck=True)
-    matches = bf.match(des1, des2)
-    matches = sorted(matches, key=lambda x: x.distance)
-
-    # Remove not so good matches
-    numGoodMatches = int(len(matches) * GOOD_MATCH_PERCENT)
-    matches = matches[:numGoodMatches]
-
-    # Draw top matches
-    if display:
-        matching_result = cv2.drawMatches(img1, kp1, img2, kp2, matches, None, flags=2)
-        display_img(matching_result, "Matches", (400 * 2, 400))
-    print(len(matches))
-    return int(matches[len(matches)-1].distance)
-
-
-def disparity_map_gray_scale(img1: np.ndarray, img2: np.ndarray, janela: Tuple[int, int] = (3,3), measure: str = 'SSD') -> None:
-    """ Given a pair of rectified stereo images, use the matching window to calculate the
-        disparity map of the second image relative to the first.
-    :param img1: Input image BGR (source)
-    :param img2: Input image BGR (reference)
-    :param janela: Janela de busca (x,y), es mejor que sea cuadratica(x=y)
-    :param measure: Similarity/Dissimilarity Measures
-    :return:
-    """
-    img1_gray = cv2.cvtColor(img1, cv2.COLOR_BGR2GRAY)
-    img2_gray = cv2.cvtColor(img2, cv2.COLOR_BGR2GRAY)
-
-    # Display two images into same window
-    images_gray = np.hstack((img1_gray, img2_gray))
-    display_img(images_gray, "img1_gray and img2_gray", (800, 400))
-
-    h, w = img1_gray.shape                              # height and width
-    jx, jy = janela[0]//2, janela[1]//2   # half-janela
-    iterator = min(jx, 5)
-    disparity_map = np.zeros(img1_gray.shape, dtype=img1_gray.dtype)
-
-    max_val_bar = 100
-    bar = progressbar.ProgressBar(maxval=max_val_bar, widgets=[progressbar.Bar('=', '[', ']'), ' ', progressbar.Percentage()])
-    bar.start()
-    # iy, ix, they are the beginning of the coordinates to make the crop
-    for y_ in range(jy, h-jy, iterator):
-        iy = y_-jy
-        for x_ in range(jx, w-jx, iterator):                      # To avoid conflicts
-            ix_0 = x_-jy
-            a = crop_img(img1_gray, (iy, ix_0), janela)
-            r_ssd, x_min = 9999, 0                                # infinite
-            for k in range(jx, w-jx):                   # Percorrer vertically in the second image
-                ix = k-jx
-                b = crop_img(img2_gray, (iy, ix), janela)
-                if measure == 'SSD':
-                    s = ssd(a, b)
-                if measure == 'SAD':
-                    s = sad(a, b)
-                if s < r_ssd:
-                    r_ssd, x_min = s, k
-            d = abs(x_min - x_)
-            disparity_map[y_][x_] = d
-        bar.update((y_ / w) * max_val_bar)
-    bar.finish()
-
-    display_img(disparity_map, "Disparity Map", (400, 400))
-
-
-def disparity_map(img1: np.ndarray, img2: np.ndarray, janela: Tuple[int, int] = (3,3)) -> None:
-    """ Given a pair of rectified stereo images, use the matching window to calculate the
-        disparity map of the second image relative to the first.
-    :param img1: Input image BGR (source)
-    :param img2: Input image BGR (reference)
-    :param janela: Janela de busca (x,y), es mejor que sea cuadratica(x=y)
-    :return:
-    """
-    # convert BGR to gray-scale (RGB[A] to Gray:  Y <- 0.299*R + 0.587*G + 0.114*B)
-    img1_gray = cv2.cvtColor(img1, cv2.COLOR_BGR2GRAY)
-    img2_gray = cv2.cvtColor(img2, cv2.COLOR_BGR2GRAY)
-
-    # ---
-    d_j = get_distance(img1_gray, img2_gray, True)
-
-    h, w = img2_gray.shape  # height and width
-    jx, jy = janela[0] // 2, janela[1] // 2  # half-janela
-    iterator = min(jx, 5)   # tamanho para percorrer as janelas
-
-    img1_gray_mod = np.zeros((img1_gray.shape[0] + 2 * jy, img1_gray.shape[1] + 2 * jx), dtype=img1_gray.dtype)
-    img1_gray_mod[jy:jy + h, jx:jx + w] = img1_gray
-
-    img2_gray_mod = np.zeros((img2_gray.shape[0] + 2*jy, img2_gray.shape[1] + 2*jx), dtype=img2_gray.dtype)
-    img2_gray_mod[jy:jy+h, jx:jx+w] = img2_gray
-
-    disparityMap = np.empty(img1_gray_mod.shape, dtype=img1_gray.dtype)
-    h_, w_ = img1_gray_mod.shape
-    s_list = []
-    # ProgressBar
-    max_val_bar = 100
-    bar = progressbar.ProgressBar(maxval=max_val_bar,
-                                  widgets=[progressbar.Bar('=', '[', ']'), ' ', progressbar.Percentage()])
-    bar.start()
-    # iy, ix, they are the beginning of the coordinates to make the crop
-    for y_ in range(jy, h_-jy, iterator):
-        iy = y_ - jy
-        for x_ in range(jx, w_-jx, iterator):  # To avoid conflicts
-            ix_0 = x_ - jx
-            a = crop_img(img1_gray_mod, (iy, ix_0), janela)
-            r_ssd, x_min = 9999, 0  # infinite
-            for k in range(max(jx, x_ - d_j * 2), min(w_-jx, x_ + d_j * 2), iterator):  # Percorrer vertically in the second image
-                ix = k - jx
-                b = crop_img(img2_gray_mod, (iy, ix), janela)
-
-                s = ssd(a, b)
-                if s < r_ssd:
-                    r_ssd, x_min = s, k
-                if s == 0:
-                    break
-
-            d = abs(x_min - x_)
-            for y_p in range(iy, min(iy+janela[1], h_)):
-                for x_p in range(ix_0, min(ix_0+janela[0], w_)):
-                    disparityMap[y_][x_] = d
-
-        bar.update((y_ / w) * max_val_bar)
-    bar.finish()
-
-    #plt.plot(s_list)
-    #plt.savefig("Problem1/result/temp/temp.jpg")
-    display_img(disparityMap, "Disparity Map", (400, 400))
-
-
-def disparity_map_v2(img1: np.ndarray, img2: np.ndarray, ndisp: int, janela: Tuple[int, int] = (3,3)) -> None:
+def disparity_map(img1: np.ndarray, img2: np.ndarray, ndisp: int, janela: Tuple[int, int], SMA: str, norm: bool = False) -> np.ndarray:
     """ mapa de disparidade da segunda imagem em relação à primeira. (busco en la primera imagen...)
     :param img1: input image Left BGR
     :param img2: input image Right BGR
-    :param ndisp:
+    :param ndisp: a conservative bound on the number of disparity levels
     :param janela: (h_y, w_x)
+    :param SMA: Similarity Measure Algorithm (SSD, NC,..)
+    :param norm: (BOOL)normalized gray images
     :return:
     """
-    img_l = cv2.cvtColor(img1, cv2.COLOR_BGR2GRAY)      # Image Left
-    img_r = cv2.cvtColor(img2, cv2.COLOR_BGR2GRAY)      # Image Right
+    img_l = cv2.cvtColor(img1, cv2.COLOR_BGR2GRAY)       # Image Left
+    img_r = cv2.cvtColor(img2, cv2.COLOR_BGR2GRAY)       # Image Right
 
-    jy, jx = janela[0], janela[1]
-    h, w = img_r.shape
-    disp_map = np.zeros(img_r.shape, dtype=img_r.dtype)
-    iter = 5
+    jy, jx = janela[0], janela[1]                        # height and width of the janela
+    h, w = img_r.shape                                   # height and width of the image Right
+    disp_map = np.zeros(img_r.shape, dtype=img_r.dtype)  # matrix that will contain the disparity map
+    # 'iter' number of pixels that the window advances in the img_r; do not confuse with the search window (img_l)
+    iter = ITER_MIN
 
+    # To use 'NCC' it is necessary that the images are normalized in order to obtain a result in a range of [-1, 1],
+    # and then convert it to [0,1]
+    if SMA == "NCC" or norm:
+        img_l = (img_l - np.mean(img_l)) / (np.std(img_l) * len(img_l))
+        img_r = (img_r - np.mean(img_r)) / (np.std(img_r) * len(img_r))
+
+    # Progress Bar animation
     maxv = 100
     bar = progressbar.ProgressBar(maxval=maxv, widgets=[progressbar.Bar('=', '[', ']'), ' ', progressbar.Percentage()])
     bar.start()
 
+    #
     for y in range(0, h-jy+1, min(iter, jy)):
         for x in range(0, w-jx+1, min(iter, jx)):
             window_r = crop_img(img_r, (y, x), janela)
-            SM = 9999  # init value of Similarity Measure
-            disp_val = 0
+            SM = 9999       # init value of Similarity Measure
+            disp_val = 0    # disparity value
+            # Scrolling through the search window
             for x_ in range(x + jx, min(w - jx, x + ndisp)):
                 window_l = crop_img(img_l, (y, x_), janela)
-                result_SM = ssd(window_r, window_l)
+                result_SM = SM_algorithm(window_r, window_l, SMA)
                 if result_SM < SM:
                     disp_val = abs(x_ - x)
                     SM = result_SM
@@ -203,17 +123,16 @@ def disparity_map_v2(img1: np.ndarray, img2: np.ndarray, ndisp: int, janela: Tup
                 for xi in range(x, x + jx):
                     disp_map[yi][xi] = disp_val
 
-            bar.update((y / w) * maxv)
+            bar.update((y / h) * maxv)
     bar.finish()
 
-    display_img(disp_map, "Disparity Map", (600, 600))
-    return None
+    return disp_map
 
 
 def execute_problem1():
-    path = "Problem1/data/Motorcycle-imperfect/"   # Motorcycle-imperfect
-    img1_name = "im0.png"
-    img2_name = "im1.png"
+    path = "Problem1/data/teddy/"   # Motorcycle-imperfect
+    img1_name = "im2.png"
+    img2_name = "im6.png"
 
     img1 = cv2.imread(path + img1_name)
     img2 = cv2.imread(path + img2_name)
@@ -223,8 +142,14 @@ def execute_problem1():
     images_bgr = np.hstack((img1, img2, img1_2))
     display_img(images_bgr, "[ %s, %s and addWeight]" % (img1_name, img2_name), (1200, 400))
 
-    disparity_map_v2(img1, img2, ndisp=280, janela=(15, 15))
-    # disparity_map_gray_scale(img1,img2, (3, 3))
+    # NECESITO Leer el archivo calib.txt para obtener el ndisp automatico
+
+    start = time.time()
+    disp_map = disparity_map(img1, img2, ndisp=80, janela=(15, 15), SMA="NCC", norm=False)
+    end = time.time()
+    print("Time Taken : ~ %.0f%s%.2f %s" % ((end - start) // 60, ":", (end - start) % 60, "sec"))
+
+    display_img(disp_map, "Disparity Map", (600, 600))
     print("Finished Problem 1...")
 
 
