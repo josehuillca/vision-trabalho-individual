@@ -3,8 +3,6 @@
   <component name="ChangeListManager">
     <list default="true" id="9c7f947a-6973-495e-add3-b6ace0663b66" name="Default Changelist" comment="">
       <change beforePath="$PROJECT_DIR$/Problem1/main1.py" beforeDir="false" afterPath="$PROJECT_DIR$/Problem1/main1.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/Problem1/result/temp/temp.jpg" beforeDir="false" afterPath="$PROJECT_DIR$/Problem1/result/temp/temp.jpg" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/Problem1/utils.py" beforeDir="false" afterPath="$PROJECT_DIR$/Problem1/utils.py" afterDir="false" />
     </list>
     <option name="EXCLUDED_CONVERTED_TO_IGNORED" value="true" />
     <option name="SHOW_DIALOG" value="false" />
@@ -17,20 +15,26 @@
       <file pinned="false" current-in-tab="true">
         <entry file="file://$PROJECT_DIR$/Problem1/main1.py">
           <provider selected="true" editor-type-id="text-editor">
-            <state relative-caret-position="368">
-              <caret line="155" column="12" lean-forward="true" selection-start-line="155" selection-start-column="12" selection-end-line="155" selection-end-column="12" />
+            <state relative-caret-position="385">
+              <caret line="203" column="47" lean-forward="true" selection-start-line="203" selection-start-column="47" selection-end-line="203" selection-end-column="47" />
               <folding>
                 <element signature="e#0#10#0" expanded="true" />
+                <element signature="e#1776#3793#0" />
               </folding>
             </state>
           </provider>
         </entry>
       </file>
       <file pinned="false" current-in-tab="false">
+        <entry file="file://$PROJECT_DIR$/Problem1/data/Motorcycle-imperfect/calib.txt">
+          <provider selected="true" editor-type-id="text-editor" />
+        </entry>
+      </file>
+      <file pinned="false" current-in-tab="false">
         <entry file="file://$PROJECT_DIR$/Problem1/utils.py">
           <provider selected="true" editor-type-id="text-editor">
-            <state relative-caret-position="75">
-              <caret line="5" column="17" lean-forward="true" selection-start-line="5" selection-start-column="17" selection-end-line="5" selection-end-column="17" />
+            <state relative-caret-position="-85">
+              <caret line="5" column="17" selection-start-line="5" selection-start-column="17" selection-end-line="5" selection-end-column="17" />
               <folding>
                 <element signature="e#0#24#0" expanded="true" />
               </folding>
@@ -71,7 +75,6 @@
       <foldersAlwaysOnTop value="true" />
     </navigator>
     <panes>
-      <pane id="Scope" />
       <pane id="ProjectPane">
         <subPane>
           <expand>
@@ -121,6 +124,7 @@
           <select />
         </subPane>
       </pane>
+      <pane id="Scope" />
     </panes>
   </component>
   <component name="PropertiesComponent">
@@ -192,10 +196,13 @@
         </state>
       </provider>
     </entry>
+    <entry file="file://$PROJECT_DIR$/Problem1/data/Motorcycle-imperfect/calib.txt">
+      <provider selected="true" editor-type-id="text-editor" />
+    </entry>
     <entry file="file://$PROJECT_DIR$/Problem1/utils.py">
       <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="75">
-          <caret line="5" column="17" lean-forward="true" selection-start-line="5" selection-start-column="17" selection-end-line="5" selection-end-column="17" />
+        <state relative-caret-position="-85">
+          <caret line="5" column="17" selection-start-line="5" selection-start-column="17" selection-end-line="5" selection-end-column="17" />
           <folding>
             <element signature="e#0#24#0" expanded="true" />
           </folding>
@@ -204,10 +211,11 @@
     </entry>
     <entry file="file://$PROJECT_DIR$/Problem1/main1.py">
       <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="368">
-          <caret line="155" column="12" lean-forward="true" selection-start-line="155" selection-start-column="12" selection-end-line="155" selection-end-column="12" />
+        <state relative-caret-position="385">
+          <caret line="203" column="47" lean-forward="true" selection-start-line="203" selection-start-column="47" selection-end-line="203" selection-end-column="47" />
           <folding>
             <element signature="e#0#10#0" expanded="true" />
+            <element signature="e#1776#3793#0" />
           </folding>
         </state>
       </provider>

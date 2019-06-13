@@ -165,6 +165,51 @@ def disparity_map(img1: np.ndarray, img2: np.ndarray, janela: Tuple[int, int] = 
     display_img(disparityMap, "Disparity Map", (400, 400))
 
 
+def disparity_map_v2(img1: np.ndarray, img2: np.ndarray, ndisp: int, janela: Tuple[int, int] = (3,3)) -> None:
+    """ mapa de disparidade da segunda imagem em relação à primeira. (busco en la primera imagen...)
+    :param img1: input image Left BGR
+    :param img2: input image Right BGR
+    :param ndisp:
+    :param janela: (h_y, w_x)
+    :return:
+    """
+    img_l = cv2.cvtColor(img1, cv2.COLOR_BGR2GRAY)      # Image Left
+    img_r = cv2.cvtColor(img2, cv2.COLOR_BGR2GRAY)      # Image Right
+
+    jy, jx = janela[0], janela[1]
+    h, w = img_r.shape
+    disp_map = np.zeros(img_r.shape, dtype=img_r.dtype)
+    iter = 5
+
+    maxv = 100
+    bar = progressbar.ProgressBar(maxval=maxv, widgets=[progressbar.Bar('=', '[', ']'), ' ', progressbar.Percentage()])
+    bar.start()
+
+    for y in range(0, h-jy+1, min(iter, jy)):
+        for x in range(0, w-jx+1, min(iter, jx)):
+            window_r = crop_img(img_r, (y, x), janela)
+            SM = 9999  # init value of Similarity Measure
+            disp_val = 0
+            for x_ in range(x + jx, min(w - jx, x + ndisp)):
+                window_l = crop_img(img_l, (y, x_), janela)
+                result_SM = ssd(window_r, window_l)
+                if result_SM < SM:
+                    disp_val = abs(x_ - x)
+                    SM = result_SM
+                    if SM == 0:
+                        break
+
+            for yi in range(y, y + jy):
+                for xi in range(x, x + jx):
+                    disp_map[yi][xi] = disp_val
+
+            bar.update((y / w) * maxv)
+    bar.finish()
+
+    display_img(disp_map, "Disparity Map", (600, 600))
+    return None
+
+
 def execute_problem1():
     path = "Problem1/data/Motorcycle-imperfect/"   # Motorcycle-imperfect
     img1_name = "im0.png"
@@ -174,12 +219,12 @@ def execute_problem1():
     img2 = cv2.imread(path + img2_name)
 
     # Display three images into same window
-    img1_2 = cv2.addWeighted(img1, 0.7, img2, 0.5, 0)
+    img1_2 = cv2.addWeighted(img1, 0.9, img2, 0.5, 0)
     images_bgr = np.hstack((img1, img2, img1_2))
     display_img(images_bgr, "[ %s, %s and addWeight]" % (img1_name, img2_name), (1200, 400))
 
-    disparity_map(img1, img2, (15, 15))
-    #disparity_map_gray_scale(img1,img2, (3, 3))
+    disparity_map_v2(img1, img2, ndisp=280, janela=(15, 15))
+    # disparity_map_gray_scale(img1,img2, (3, 3))
     print("Finished Problem 1...")
 
 
