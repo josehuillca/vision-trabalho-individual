@@ -104,3 +104,6 @@ venv.bak/
 .mypy_cache/
 
 .idea/*
+.idea/misc.xml
+.idea/vision-trabalho-individual.iml
+.idea/workspace.xml

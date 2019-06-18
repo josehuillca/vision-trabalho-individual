@@ -4,7 +4,7 @@ from typing import Tuple, List
 from Problem2.utils import display_img
 
 
-def drawlines(img1,img2,lines,pts1,pts2):
+def drawlines(img1, img2, lines, pts1, pts2):
     """img1 - image on which we draw the epilines for the points in img2
         lines - corresponding epilines """
     r,c = img1.shape
@@ -18,23 +18,6 @@ def drawlines(img1,img2,lines,pts1,pts2):
         img1 = cv2.circle(img1, tuple(pt1), 5, color, -1)
         img2 = cv2.circle(img2, tuple(pt2), 5, color, -1)
     return img1, img2
-
-
-def normalize_coord(shape: Tuple[int, int], coord: Tuple[int, int]) -> List:
-    """
-    :param shape:
-    :param coord:
-    :return:
-    """
-    h, w = shape[0], shape[1]
-    T = [[w+h, 0, w/2],
-         [0, w+h, h/2],
-         [0, 0, 1]]
-    T = np.linalg.inv(np.array(T))
-    x = np.transpose(np.array([[coord[0], coord[1], 1]]))
-    x_ = np.dot(T, x)
-    x_ = x_.flatten().tolist()
-    return [x_[1], x_[0]]
     
 
 def compute_f(img1: np.ndarray, img2: np.ndarray) -> None:
