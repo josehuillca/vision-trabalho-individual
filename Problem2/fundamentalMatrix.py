@@ -1,5 +1,6 @@
 import cv2
 import numpy as np
+from typing import Tuple, List
 from Problem2.utils import display_img
 
 
@@ -7,17 +8,34 @@ def drawlines(img1,img2,lines,pts1,pts2):
     """img1 - image on which we draw the epilines for the points in img2
         lines - corresponding epilines """
     r,c = img1.shape
-    img1 = cv2.cvtColor(img1,cv2.COLOR_GRAY2BGR)
-    img2 = cv2.cvtColor(img2,cv2.COLOR_GRAY2BGR)
-    for r,pt1,pt2 in zip(lines,pts1,pts2):
+    img1 = cv2.cvtColor(img1, cv2.COLOR_GRAY2BGR)
+    img2 = cv2.cvtColor(img2, cv2.COLOR_GRAY2BGR)
+    for r, pt1, pt2 in zip(lines, pts1, pts2):
         color = tuple(np.random.randint(0,255,3).tolist())
-        x0,y0 = map(int, [0, -r[2]/r[1] ])
-        x1,y1 = map(int, [c, -(r[2]+r[0]*c)/r[1] ])
-        img1 = cv2.line(img1, (x0,y0), (x1,y1), color,1)
-        img1 = cv2.circle(img1,tuple(pt1),5,color,-1)
-        img2 = cv2.circle(img2,tuple(pt2),5,color,-1)
-    return img1,img2
+        x0, y0 = map(int, [0, -r[2]/r[1]])
+        x1, y1 = map(int, [c, -(r[2]+r[0]*c)/r[1]])
+        img1 = cv2.line(img1, (x0, y0), (x1, y1), color, 1)
+        img1 = cv2.circle(img1, tuple(pt1), 5, color, -1)
+        img2 = cv2.circle(img2, tuple(pt2), 5, color, -1)
+    return img1, img2
 
+
+def normalize_coord(shape: Tuple[int, int], coord: Tuple[int, int]) -> List:
+    """
+    :param shape:
+    :param coord:
+    :return:
+    """
+    h, w = shape[0], shape[1]
+    T = [[w+h, 0, w/2],
+         [0, w+h, h/2],
+         [0, 0, 1]]
+    T = np.linalg.inv(np.array(T))
+    x = np.transpose(np.array([[coord[0], coord[1], 1]]))
+    x_ = np.dot(T, x)
+    x_ = x_.flatten().tolist()
+    return [x_[1], x_[0]]
+    
 
 def compute_f(img1: np.ndarray, img2: np.ndarray) -> None:
     """
@@ -49,6 +67,7 @@ def compute_f(img1: np.ndarray, img2: np.ndarray) -> None:
             good.append(m)
             pts2.append(kp2[m.trainIdx].pt)
             pts1.append(kp1[m.queryIdx].pt)
+
     pts1 = np.int32(pts1)
     pts2 = np.int32(pts2)
     F, mask = cv2.findFundamentalMat(pts1, pts2, cv2.FM_RANSAC)

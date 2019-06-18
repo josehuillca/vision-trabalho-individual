@@ -1,6 +1,7 @@
 from Problem2.fundamentalMatrix import compute_f
 import cv2
 
+
 def execute_problem2():
     path = "Problem2/data/templeSparseRing/"
     img1_name = "templeSR0001.png"
