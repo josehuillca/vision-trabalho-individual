@@ -10,24 +10,31 @@
 import numpy as np
 import cv2
 from typing import Tuple, Any, List
-from Problem2.utils import display_img
+from Problem2.utils import display_img, print_matrix
 
 
-def normalize_coord(shape: Tuple[int, int], coord: Tuple[int, int]) -> List:
+def matrix_T(shape: Tuple[int, int]) -> np.ndarray:
     """
-    :param shape: (height, width)
-    :param coord: (x, y)
-    :return:      (x, y) normalized
+    :param shape: Image shape
+    :return:
     """
     h, w = shape[0], shape[1]
-    T = [[w+h, 0, w/2],
-         [0, w+h, h/2],
+    T = [[w + h, 0, w / 2],
+         [0, w + h, h / 2],
          [0, 0, 1]]
-    T = np.linalg.inv(np.array(T))
+    return np.linalg.inv(np.array(T))
+
+
+def normalize_coord(coord: Tuple[int, int], T: np.ndarray) -> List:
+    """
+    :param coord: (x, y)
+    :param T:     Matrix to Transform the image coordinates
+    :return:      (x, y) normalized
+    """
     x = np.transpose(np.array([[coord[0], coord[1], 1]]))
     x_ = np.dot(T, x)
     x_ = x_.flatten().tolist()
-    return [x_[1], x_[0]]
+    return [x_[0], x_[1], 1]
 
 
 def interest_points(img1: np.ndarray, img2: np.ndarray, num: int = 8, display_matches: bool = False) -> Tuple[Any, Any]:
@@ -60,12 +67,12 @@ def interest_points(img1: np.ndarray, img2: np.ndarray, num: int = 8, display_ma
     # ratio test as per Lowe's paper
     for i, (m, n) in enumerate(matches):
         if m.distance < 0.4 * n.distance:
+            if k >= num:
+                break
+            k = k + 1
             good.append([m])
             pts2.append(kp2[m.trainIdx].pt)
             pts1.append(kp1[m.queryIdx].pt)
-            if k > num:
-                break
-            k = k + 1
 
     pts1 = np.int32(pts1)
     pts2 = np.int32(pts2)
@@ -85,6 +92,26 @@ def compute_f_8point(img1: np.ndarray, img2: np.ndarray) -> None:
     """
     # get 8 interest points
     pts1, pts2 = interest_points(img1, img2, num=8, display_matches=True)
-    print(len(pts1), len(pts2))
+
+    # Normalization: Transform the image coordinates
+    T = matrix_T(img1.shape)
+    T_ = matrix_T(img2.shape)
+    pts1_ = [normalize_coord(xy, T) for xy in pts1]
+    pts2_ = [normalize_coord(xy, T_) for xy in pts2]
+    print("Interest Points: ", len(pts1_))
+
+    # Find the fundamental matrix
+    A = [[], [], [], [], [], [], [], []]
+    for i in range(0, len(pts2_)):
+        x, y = pts1_[i][0], pts1_[i][1]
+        x_, y_ = pts2_[i][0], pts2_[i][1]
+        A[i] = [x_*x, x_*y, x_, y_*x, y_*y, y_, x, y]
+
+    print_matrix(np.array(A), title="Matrix A")
+    u, s, vh = np.linalg.svd(A)
+    print_matrix(np.array(vh), title="Matrix vh")
+
+    # Let F be the last column of vh
+    # Reshape into  a 3x3 matrix F_shapeu
 
     return None

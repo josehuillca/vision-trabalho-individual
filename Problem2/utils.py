@@ -1,5 +1,6 @@
 import cv2
 import numpy as np
+from texttable import Texttable
 from typing import Tuple, List
 
 
@@ -15,23 +16,6 @@ def display_img(img: np.ndarray, title: str, resize: np.ndarray = (600, 600)) ->
     cv2.resizeWindow(title, resize[0], resize[1])
     cv2.waitKey(0)
     cv2.destroyAllWindows()
-
-
-def normalize_coord(shape: Tuple[int, int], coord: Tuple[int, int]) -> List:
-    """
-    :param shape:
-    :param coord:
-    :return:
-    """
-    h, w = shape[0], shape[1]
-    T = [[w+h, 0, w/2],
-         [0, w+h, h/2],
-         [0, 0, 1]]
-    T = np.linalg.inv(np.array(T))
-    x = np.transpose(np.array([[coord[0], coord[1], 1]]))
-    x_ = np.dot(T, x)
-    x_ = x_.flatten().tolist()
-    return [x_[1], x_[0]]
 
 
 def draw_points(img: np.ndarray, points: np.ndarray, cors: np.ndarray = None, r: int = 5) -> None:
@@ -51,3 +35,40 @@ def draw_points(img: np.ndarray, points: np.ndarray, cors: np.ndarray = None, r:
     for p in points:
         cv2.circle(img, (p[0], p[1]), r, cors[k], -1)
         k = k + 1
+
+
+def print_matrix(m: np.ndarray, head: np.ndarray = None, title: str = "") -> None:
+    """ display matrix
+    :param m:
+    :param head: head matrix
+    :param title: title matrix
+    :return:
+    """
+    cols_align = []
+    cols_m = m.shape[1]
+    rows_m = m.shape[0]
+    for i in range(0, cols_m):
+        if i == 0:
+            cols_align.append("l")
+        else:
+            cols_align.append("r")
+
+    content = []
+    if head is None:
+        head = ['-' for x in range(0, cols_m)]
+    content.append(head)
+    for i in range(0, rows_m):
+        content.append(m[i])
+
+    table = Texttable()
+    table.set_deco(Texttable.HEADER)
+    table.set_header_align(cols_align)
+    table.set_cols_dtype(['a'] * cols_m)  # automatic
+    table.set_cols_align(cols_align)
+    table.add_rows(content)
+
+    if title != "":
+        print("**********************  " + title + "  **********************")
+
+    print(table.draw())
+
