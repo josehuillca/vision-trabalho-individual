@@ -1,10 +1,10 @@
 import cv2
 import numpy as np
 from texttable import Texttable
-from typing import Tuple, List
+from typing import Tuple, Any
 
 
-def display_img(img: np.ndarray, title: str, resize: np.ndarray = (600, 600)) -> None:
+def display_img(img: np.ndarray, title: str, resize: Tuple[int, int] = (600, 600)) -> None:
     """ Display image window
     :param img: Input image
     :param title: Title image
@@ -71,7 +71,7 @@ def print_matrix(m: np.ndarray, head: np.ndarray = None, title: str = "") -> Non
 
     content = []
     if head is None:
-        head = ['-' for x in range(0, cols_m)]
+        head = [' ' for x in range(0, cols_m)]
     content.append(head)
     for i in range(0, rows_m):
         content.append(m[i])
@@ -87,4 +87,79 @@ def print_matrix(m: np.ndarray, head: np.ndarray = None, title: str = "") -> Non
         print("**********************  " + title + "  **********************")
 
     print(table.draw())
+
+
+def interest_points(img1: np.ndarray, img2: np.ndarray, ratio: float, num: int = 8, display_matches: bool = False) -> Tuple[Any, Any]:
+    """ Asumimos que sift nos dara mas de 'num=8' puntos de interes
+    :param img1:            Input image  gray-scale
+    :param img2:            Input image  gray-scale
+    :param ratio:           ratio to search good matches 0-1
+    :param num:             cantidad de puntos de interes a ser extraida
+    :param display_matches: Draw matches
+    :return:                [[x1,y1], ...[xn,yn]], [[x'1,y'1], ...[x'n,y'n]]
+    """
+    sift = cv2.xfeatures2d.SIFT_create()
+
+    # find the keypoints and descriptors with SIFT
+    kp1, des1 = sift.detectAndCompute(img1, None)
+    kp2, des2 = sift.detectAndCompute(img2, None)
+
+    # FLANN parameters
+    FLANN_INDEX_KDTREE = 0
+    index_params = dict(algorithm=FLANN_INDEX_KDTREE, trees=5)
+    search_params = dict(checks=50)  # or pass empty dictionary
+
+    flann = cv2.FlannBasedMatcher(index_params, search_params)
+    matches = flann.knnMatch(des1, des2, k=2)
+
+    good = []
+    pts1 = []
+    pts2 = []
+
+    k = 0
+    # ratio test as per Lowe's paper
+    for i, (m, n) in enumerate(matches):
+        if m.distance < ratio * n.distance:
+            if k >= num:
+                break
+            k = k + 1
+            good.append([m])
+            pts2.append(kp2[m.trainIdx].pt)
+            pts1.append(kp1[m.queryIdx].pt)
+
+    pts1 = np.int32(pts1)
+    pts2 = np.int32(pts2)
+
+    # Draw top matches
+    if display_matches:
+        im_matches = cv2.drawMatchesKnn(img1, kp1, img2, kp2, good, None, flags=2)
+        display_img(im_matches, "Matches", (600 * 2, 600))
+
+    return pts1, pts2
+
+
+def draw_epipole_lines(img1: np.ndarray, img2: np.ndarray, pts1: np.ndarray, pts2: np.ndarray, F: np.ndarray) -> None:
+    """
+    :param img1: Input array gray-scale
+    :param img2: Input array gray-scale
+    :param pts1: [[x1, y1], ...]
+    :param pts2: [[x2, y2], ...]
+    :param F:    Fundamental matrix
+    :return:
+    """
+    # Find epilines corresponding to points in right image (second image) and
+    # drawing its lines on left image
+    lines1 = cv2.computeCorrespondEpilines(pts2.reshape(-1, 1, 2), 2, F)
+    lines1 = lines1.reshape(-1, 3)
+    img5, img6 = draw_lines(img1, img2, lines1, pts1, pts2)
+
+    # Find epilines corresponding to points in left image (first image) and
+    # drawing its lines on right image
+    lines2 = cv2.computeCorrespondEpilines(pts1.reshape(-1, 1, 2), 1, F)
+    lines2 = lines2.reshape(-1, 3)
+    img3, img4 = draw_lines(img2, img1, lines2, pts2, pts1)
+
+    # Display base images into same window
+    numpy_h = np.hstack((img5, img3))
+    display_img(numpy_h, "Epipole lines - Result", (600 * 2, 600))
 
