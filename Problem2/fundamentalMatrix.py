@@ -1,23 +1,7 @@
 import cv2
 import numpy as np
 from typing import Tuple, List
-from Problem2.utils import display_img
-
-
-def drawlines(img1, img2, lines, pts1, pts2):
-    """img1 - image on which we draw the epilines for the points in img2
-        lines - corresponding epilines """
-    r,c = img1.shape
-    img1 = cv2.cvtColor(img1, cv2.COLOR_GRAY2BGR)
-    img2 = cv2.cvtColor(img2, cv2.COLOR_GRAY2BGR)
-    for r, pt1, pt2 in zip(lines, pts1, pts2):
-        color = tuple(np.random.randint(0,255,3).tolist())
-        x0, y0 = map(int, [0, -r[2]/r[1]])
-        x1, y1 = map(int, [c, -(r[2]+r[0]*c)/r[1]])
-        img1 = cv2.line(img1, (x0, y0), (x1, y1), color, 1)
-        img1 = cv2.circle(img1, tuple(pt1), 5, color, -1)
-        img2 = cv2.circle(img2, tuple(pt2), 5, color, -1)
-    return img1, img2
+from Problem2.utils import display_img, draw_lines
     
 
 def compute_f(img1: np.ndarray, img2: np.ndarray) -> None:
@@ -64,13 +48,13 @@ def compute_f(img1: np.ndarray, img2: np.ndarray) -> None:
     # drawing its lines on left image
     lines1 = cv2.computeCorrespondEpilines(pts2.reshape(-1, 1, 2), 2, F)
     lines1 = lines1.reshape(-1, 3)
-    img5, img6 = drawlines(img1, img2, lines1, pts1, pts2)
+    img5, img6 = draw_lines(img1, img2, lines1, pts1, pts2)
 
     # Find epilines corresponding to points in left image (first image) and
     # drawing its lines on right image
     lines2 = cv2.computeCorrespondEpilines(pts1.reshape(-1, 1, 2), 1, F)
     lines2 = lines2.reshape(-1, 3)
-    img3, img4 = drawlines(img2, img1, lines2, pts2, pts1)
+    img3, img4 = draw_lines(img2, img1, lines2, pts2, pts1)
 
     # Display base images into same window
     numpy_h = np.hstack((img5, img3))
