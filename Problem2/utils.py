@@ -53,11 +53,12 @@ def draw_lines(img1, img2, lines, pts1, pts2):
     return img1, img2
 
 
-def print_matrix(m: np.ndarray, head: np.ndarray = None, title: str = "") -> None:
+def print_matrix(m: np.ndarray, head: np.ndarray = None, title: str = "", c_type: str = 'a') -> None:
     """ display matrix
     :param m:
     :param head: head matrix
     :param title: title matrix
+    :param c_type:
     :return:
     """
     cols_align = []
@@ -79,7 +80,7 @@ def print_matrix(m: np.ndarray, head: np.ndarray = None, title: str = "") -> Non
     table = Texttable()
     table.set_deco(Texttable.HEADER)
     table.set_header_align(cols_align)
-    table.set_cols_dtype(['e'] * cols_m)  # automatic
+    table.set_cols_dtype(['a'] * cols_m)  # automatic
     table.set_cols_align(cols_align)
     table.add_rows(content)
 
