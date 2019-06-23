@@ -90,12 +90,12 @@ def print_matrix(m: np.ndarray, head: np.ndarray = None, title: str = "", c_type
     print(table.draw())
 
 
-def interest_points(img1: np.ndarray, img2: np.ndarray, ratio: float, num: int = 8, display_matches: bool = False) -> Tuple[Any, Any]:
+def interest_points(img1: np.ndarray, img2: np.ndarray, ratio: float, num_max: int = 8, display_matches: bool = False) -> Tuple[Any, Any]:
     """ Asumimos que sift nos dara mas de 'num=8' puntos de interes
     :param img1:            Input image  gray-scale
     :param img2:            Input image  gray-scale
     :param ratio:           ratio to search good matches 0-1
-    :param num:             cantidad de puntos de interes a ser extraida
+    :param num_max:             cantidad de puntos de interes a ser extraida
     :param display_matches: Draw matches
     :return:                [[x1,y1], ...[xn,yn]], [[x'1,y'1], ...[x'n,y'n]]
     """
@@ -121,7 +121,7 @@ def interest_points(img1: np.ndarray, img2: np.ndarray, ratio: float, num: int =
     # ratio test as per Lowe's paper
     for i, (m, n) in enumerate(matches):
         if m.distance < ratio * n.distance:
-            if k >= num:
+            if k >= num_max:
                 break
             k = k + 1
             good.append([m])
@@ -131,11 +131,19 @@ def interest_points(img1: np.ndarray, img2: np.ndarray, ratio: float, num: int =
     pts1 = np.int32(pts1)
     pts2 = np.int32(pts2)
 
+    # Constrain matches to fit homography
+    _, mask = cv2.findHomography(pts1, pts2, cv2.RANSAC, 100.0)
+    mask = mask.ravel()
+
+    # We select only inlier points
+    pts1 = pts1[mask == 1]
+    pts2 = pts2[mask == 1]
+
     # Draw top matches
     if display_matches:
         im_matches = cv2.drawMatchesKnn(img1, kp1, img2, kp2, good, None, flags=2)
         display_img(im_matches, "Matches", (600 * 2, 600))
-
+    print("Number of interest point obtained: ", len(pts1))
     return pts1, pts2
 
 
@@ -163,4 +171,14 @@ def draw_epipole_lines(img1: np.ndarray, img2: np.ndarray, pts1: np.ndarray, pts
     # Display base images into same window
     numpy_h = np.hstack((img5, img3))
     display_img(numpy_h, "Epipole lines - Result", (600 * 2, 600))
+
+
+def cart2hom(arr: np.ndarray) -> np.ndarray:
+    """ Convert catesian to homogenous points by appending a row of 1s
+    :param arr: array of shape (num_dimension x num_points)
+    :returns: array of shape ((num_dimension+1) x num_points)
+    """
+    if arr.ndim == 1:
+        return np.hstack([arr, 1])
+    return np.asarray(np.vstack([arr, np.ones(arr.shape[1])]))
 
