@@ -1,21 +1,32 @@
 import cv2
 import numpy as np
+import matplotlib
+import matplotlib.pyplot as plt
+matplotlib.use('MacOSX')
 from texttable import Texttable
 from typing import Tuple, Any
 
 
-def display_img(img: np.ndarray, title: str, resize: Tuple[int, int] = (600, 600)) -> None:
+def display_img(img: np.ndarray, title: str, resize: Tuple[int, int] = (600, 600), use: str = 'cv2') -> None:
     """ Display image window
-    :param img: Input image
-    :param title: Title image
-    :param resize: Resize window (width, height)
-    :return: None
+    :param img:     Input image
+    :param title:   Title image
+    :param resize:  Resize window (width, height)
+    :param use:     display with cv2 or pyplot
+    :return:        None
     """
-    cv2.namedWindow(title, cv2.WINDOW_NORMAL)
-    cv2.imshow(title, img)
-    cv2.resizeWindow(title, resize[0], resize[1])
-    cv2.waitKey(0)
-    cv2.destroyAllWindows()
+    if use == 'cv2':
+        cv2.namedWindow(title, cv2.WINDOW_NORMAL)
+        cv2.imshow(title, img)
+        cv2.resizeWindow(title, resize[0], resize[1])
+        cv2.waitKey(0)
+        cv2.destroyAllWindows()
+    elif use == 'pyplot':   # matplotlib
+        fig, ax = plt.subplots()
+        ax.imshow(img)
+        fig.show()
+    else:
+        return None
 
 
 def draw_points(img: np.ndarray, points: np.ndarray, cors: np.ndarray = None, r: int = 5) -> None:
@@ -40,7 +51,7 @@ def draw_points(img: np.ndarray, points: np.ndarray, cors: np.ndarray = None, r:
 def draw_lines(img1, img2, lines, pts1, pts2):
     """img1 - image on which we draw the epilines for the points in img2
         lines - corresponding epilines """
-    r,c = img1.shape
+    r, c = img1.shape
     img1 = cv2.cvtColor(img1, cv2.COLOR_GRAY2BGR)
     img2 = cv2.cvtColor(img2, cv2.COLOR_GRAY2BGR)
     for r, pt1, pt2 in zip(lines, pts1, pts2):
@@ -90,7 +101,7 @@ def print_matrix(m: np.ndarray, head: np.ndarray = None, title: str = "", c_type
     print(table.draw())
 
 
-def interest_points(img1: np.ndarray, img2: np.ndarray, ratio: float, num_max: int = 8, display_matches: bool = False) -> Tuple[Any, Any]:
+def interest_points(img1: np.ndarray, img2: np.ndarray, ratio: float, num_max: int = 8, display_matches: str = 'None') -> Tuple[Any, Any]:
     """ Asumimos que sift nos dara mas de 'num=8' puntos de interes
     :param img1:            Input image  gray-scale
     :param img2:            Input image  gray-scale
@@ -142,7 +153,7 @@ def interest_points(img1: np.ndarray, img2: np.ndarray, ratio: float, num_max: i
     # Draw top matches
     if display_matches:
         im_matches = cv2.drawMatchesKnn(img1, kp1, img2, kp2, good, None, flags=2)
-        display_img(im_matches, "Matches", (600 * 2, 600))
+        display_img(im_matches, "Matches", (600 * 2, 600), use=display_matches)
     print("Number of interest point obtained: ", len(pts1))
     return pts1, pts2
 

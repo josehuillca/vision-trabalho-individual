@@ -48,13 +48,13 @@ def Cube():
         glEnd()
 
 
-def point_cloud(pts: np.ndarray, p_size: float = 5.0) -> None:
+def point_cloud(pts: np.ndarray, p_size: float = 2.0) -> None:
     NPOINTS = len(pts)
     glEnable(GL_PROGRAM_POINT_SIZE)
     glPointSize(p_size)
     for i in range(NPOINTS):
         glBegin(GL_POINTS)
-        point = tuple(pts[i])
+        point = tuple(pts[i][:3])
         glVertex3fv(point)
         glEnd()
 
@@ -64,8 +64,8 @@ def main_cube2(pts: np.ndarray):
     display = (600, 600)
     pygame.display.set_mode(display, DOUBLEBUF|OPENGL)
 
-    gluPerspective(45, (display[0]/display[1]), 0.1, 50.0)
-
+    #gluPerspective(45, (display[0]/display[1]), 0.1, 50.0)
+    gluPerspective(45, (1.0 * display[0] / display[1]), 0.1, 50.0)
     glTranslatef(0.0, 0.0, -5)
 
     while True:

@@ -1,11 +1,13 @@
 import numpy as np
 import cv2
+import copy
 import matplotlib.pyplot as plt
 import matplotlib
 matplotlib.use('MacOSX')
 from mpl_toolkits.mplot3d import Axes3D
 from typing import List, Tuple
-from Problem2.utils import print_matrix, interest_points, cart2hom
+from Problem2.utils import print_matrix, interest_points, cart2hom, draw_points, display_img
+from Problem2.opengl_examples.cube2 import main_cube2
 
 
 def load_images_names(file: str) -> List:
@@ -72,7 +74,7 @@ def linear_triangulation(pts1: np.ndarray, pts2: np.ndarray, P1: np.ndarray, P2:
     :param pts2: 2D points in homo. or catesian coordinates. Shape (3 x n)
     :param P1: Camera matrices associated with p1 and p2. Shape (3 x 4)
     :param P2: Camera matrices associated with p1 and p2. Shape (3 x 4)
-    :returns: 4 x n homogenous 3d triangulated points [[X, Y, Z, W=1], ...]
+    :returns: 4 x n homogenous 3d triangulated points: [[X1, X2, ...], [Y1, Y2, ...], [Z1, Z2, ...], [W1=1, W2=1, ...]]
     """
     num_points = pts1.shape[1]
     res = np.ones((4, num_points))
@@ -94,35 +96,48 @@ def reconstruction_3d(path: str, par_file_name: str):
     # Loading matrix P and name images
     Ps, Ks, imgs_name = load_parameters(path + par_file_name)
 
-    i, j = 2, 1     # imagenes que usaremos
-    img1_gray = cv2.imread(path + imgs_name[i], 0)
-    img2_gray = cv2.imread(path + imgs_name[j], 0)
-    # 'interest_points' return formatted points: [[x1, y1], [x2, y2], ...[xn, yn]]
-    pts1, pts2 = interest_points(img1_gray, img2_gray, ratio=0.8, num_max=500, display_matches=False)
-    # we required formatted point: [[x1, x2, ...xn], [y1, y2, ...yn]]
-    pts1, pts2 = pts1.T, pts2.T
-    # homogeneous coordinates: [[x1, x2, ...xn], [y1, y2, ...yn], [1, 1, ...1]]
-    points1 = cart2hom(pts1)
-    points2 = cart2hom(pts2)
-    # normalizing coordinates
-    points1n = np.dot(np.linalg.inv(Ks[i]), points1)
-    points2n = np.dot(np.linalg.inv(Ks[j]), points2)
+    num_imgs = len(imgs_name)
+    pts3D = np.array([[],[],[],[]])
+    for i in range(0, 1):
+        j = i + 1     # imagenes que usaremos
+        img1_gray = cv2.imread(path + imgs_name[i], 0)
+        img2_gray = cv2.imread(path + imgs_name[j], 0)
+        # 'interest_points' return formatted points: [[x1, y1], [x2, y2], ...[xn, yn]]
+        pts1, pts2 = interest_points(img1_gray, img2_gray, ratio=0.8, num_max=500, display_matches='None')
 
-    # ------------
-    P1 = Ps[i]  #np.array([[1, 0, 0, 0], [0, 1, 0, 0], [0, 0, 1, 0]])
-    P2 = Ps[j]
+        '''img_c = copy.copy(img2_gray)
+        draw_points(img_c, pts2)
+        display_img(img_c, "draw points", use='pyplot')'''
 
-    tripoints3d = linear_triangulation(points1n, points2n, P1, P2)
+        # we required formatted point: [[x1, x2, ...xn], [y1, y2, ...yn]]
+        pts1, pts2 = pts1.T, pts2.T
+        # homogeneous coordinates: [[x1, x2, ...xn], [y1, y2, ...yn], [1, 1, ...1]]
+        points1 = cart2hom(pts1)
+        points2 = cart2hom(pts2)
+        # normalizing coordinates
+        points1n = np.dot(np.linalg.inv(Ks[i]), points1)
+        points2n = np.dot(np.linalg.inv(Ks[j]), points2)
 
-    fig = plt.figure()
+        # ------------
+        P1 = Ps[i]  #np.array([[1, 0, 0, 0], [0, 1, 0, 0], [0, 0, 1, 0]])
+        P2 = Ps[j]
+
+        tripoints3d = linear_triangulation(points1n, points2n, P1, P2)
+        pts3D = np.hstack([pts3D, tripoints3d])
+    print(pts3D.shape)
+
+    '''fig = plt.figure()
     fig.suptitle('3D reconstructed', fontsize=16)
     ax = fig.gca(projection='3d')
-    ax.plot(tripoints3d[0], tripoints3d[1], tripoints3d[2], 'b.')
+    ax.plot(pts3D[0], pts3D[1], pts3D[2], 'b.')
     ax.set_xlabel('x axis')
     ax.set_ylabel('y axis')
     ax.set_zlabel('z axis')
     ax.view_init(elev=135, azim=90)
-    plt.show()
+    fig.show()
+    plt.show()'''
+
+    main_cube2(pts3D.T)
 
     return None
 
