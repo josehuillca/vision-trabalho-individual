@@ -2,9 +2,13 @@ import cv2
 import numpy as np
 import matplotlib
 import matplotlib.pyplot as plt
-matplotlib.use('MacOSX')
+from sys import platform as _platform
+if _platform == "darwin":
+   # MAC OS X
+   import matplotlib
+   matplotlib.use('MacOSX')
 from texttable import Texttable
-from typing import Tuple, Any
+from typing import Tuple, Any,List
 
 
 def display_img(img: np.ndarray, title: str, resize: Tuple[int, int] = (600, 600), use: str = 'cv2') -> None:
@@ -91,7 +95,7 @@ def print_matrix(m: np.ndarray, head: np.ndarray = None, title: str = "", c_type
     table = Texttable()
     table.set_deco(Texttable.HEADER)
     table.set_header_align(cols_align)
-    table.set_cols_dtype(['a'] * cols_m)  # automatic
+    table.set_cols_dtype([c_type] * cols_m)  # automatic
     table.set_cols_align(cols_align)
     table.add_rows(content)
 
@@ -193,3 +197,47 @@ def cart2hom(arr: np.ndarray) -> np.ndarray:
         return np.hstack([arr, 1])
     return np.asarray(np.vstack([arr, np.ones(arr.shape[1])]))
 
+
+def load_images_names(file: str) -> List:
+    """
+    :param file: Path + name file(i.e. *_good_silhouette_images.txt)
+    :return:
+    """
+    lines = [line.rstrip('\n') for line in open(file, 'r+')]
+    return lines
+
+
+def load_parameters(file: str) -> Tuple[List[np.ndarray], List[np.ndarray], List[str]]:
+    """
+    :param file: Path + name file(i.e. *_par.txt)
+    :return: matrix P, intrinsic parameters, images name
+    """
+    imgs_name = []  # images names
+    Ps = []         # List of matrices P
+    Ks = []         # List of intrinsic parameters
+    with open(file, 'r+') as fo:
+        num_imgs = int(fo.readline().rstrip('\n'))
+        for i in range(0, num_imgs):
+            line = fo.readline().rstrip('\n').split(' ')
+            imgs_name.append(line[0])
+            K = np.array([float(k) for k in line[1:10]]).reshape(3, 3)      # matrix shape = 3*3
+            R = np.array([float(r) for r in line[10:19]]).reshape(3, 3)     # matrix shape = 3*3
+            t = np.array([float(t) for t in line[19:]])                     # matrix shape = 3*1
+            I_t = np.hstack((np.identity(3), np.transpose([t])))
+            P = np.dot(K, np.dot(R, I_t))
+            Ps.append(P)
+            Ks.append(K)
+    # all intrinsic parameters(Ks) are equal
+    return Ps, Ks, imgs_name
+
+
+def load_angles(file: str) -> List[Tuple[float, float]]:
+    """
+    :param file: Path + file name(i.e. *SR_ang.txt)
+    :return: [(-lat, long), ...]
+    """
+    angles = []
+    for line in open(file, 'r+'):
+        line = line.rstrip('\n').split(' ')
+        angles.append((float(line[0]), float(line[1])))
+    return angles

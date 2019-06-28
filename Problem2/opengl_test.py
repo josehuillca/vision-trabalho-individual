@@ -7,9 +7,9 @@ from OpenGL.GL import *
 from OpenGL.GLU import *
 
 from sys import platform as _platform
-import matplotlib
 if _platform == "darwin":
    # MAC OS X
+   import matplotlib
    matplotlib.use('MacOSX')
 import matplotlib.pyplot as plt
 from mpl_toolkits.mplot3d import Axes3D
@@ -137,12 +137,12 @@ def reconstruction_3d(path: str, par_file_name: str):
     # Loading matrix P and name images
     Ps, Ks, imgs_name = load_parameters(path + par_file_name)
     pts3D = [[],[],[],[]]
-    for i in range(1, 3):
-        j = i - 1     # imagenes que usaremos
+    for i in range(0, len(imgs_name)-1):
+        j = i + 1     # imagenes que usaremos
         img1_gray = cv2.imread(path + imgs_name[i], 0)
         img2_gray = cv2.imread(path + imgs_name[j], 0)
         # 'interest_points' return formatted points: [[x1, y1], [x2, y2], ...[xn, yn]]
-        pts1, pts2 = interest_points(img1_gray, img2_gray, ratio=0.8, num_max=500, display_matches=False)
+        pts1, pts2 = interest_points(img1_gray, img2_gray, ratio=0.8, num_max=500, display_matches='None')
         # we required formatted point: [[x1, x2, ...xn], [y1, y2, ...yn]]
         pts1, pts2 = pts1.T, pts2.T
         # homogeneous coordinates: [[x1, x2, ...xn], [y1, y2, ...yn], [1, 1, ...1]]
@@ -249,8 +249,8 @@ def main(pts):
 
 
 if __name__ == "__main__":
-    path = "Problem2/data/templeSparseRing/"
-    parameters_file = 'templeSR_par.txt'
+    path = "Problem2/data/dinoSparseRing/"
+    parameters_file = 'dinoSR_par.txt'
     pts3D = reconstruction_3d(path, parameters_file)
 
     print(pts3D.shape)
@@ -281,7 +281,8 @@ if __name__ == "__main__":
     ax.set_xlabel('x axis')
     ax.set_ylabel('y axis')
     ax.set_zlabel('z axis')
-    ax.view_init(elev=135, azim=90)
+    #ax.view_init(elev=135, azim=90)
     plt.show()
+
     #main(pts3D.T)
     #print(pts3D[0][:62], pts3D[1][:62], pts3D[2][:62])

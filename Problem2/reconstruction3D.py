@@ -2,45 +2,15 @@ import numpy as np
 import cv2
 import copy
 import matplotlib.pyplot as plt
-import matplotlib
-matplotlib.use('MacOSX')
+from sys import platform as _platform
+if _platform == "darwin":
+   # MAC OS X
+   import matplotlib
+   matplotlib.use('MacOSX')
 from mpl_toolkits.mplot3d import Axes3D
 from typing import List, Tuple
-from Problem2.utils import print_matrix, interest_points, cart2hom, draw_points, display_img
+from Problem2.utils import print_matrix, interest_points, cart2hom, load_parameters
 from Problem2.opengl_examples.cube2 import main_cube2
-
-
-def load_images_names(file: str) -> List:
-    """
-    :param file: Path + name file(i.e. *_good_silhouette_images.txt)
-    :return:
-    """
-    lines = [line.rstrip('\n') for line in open(file, 'r+')]
-    return lines
-
-
-def load_parameters(file: str) -> Tuple[List[np.ndarray], List[np.ndarray], List[str]]:
-    """
-    :param file: Path + name file(i.e. *_par.txt)
-    :return: matrix P, intrinsic parameters, images name
-    """
-    imgs_name = []  # images names
-    Ps = []         # List of matrices P
-    Ks = []         # List of intrinsic parameters
-    with open(file, 'r+') as fo:
-        num_imgs = int(fo.readline().rstrip('\n'))
-        for i in range(0, num_imgs):
-            line = fo.readline().rstrip('\n').split(' ')
-            imgs_name.append(line[0])
-            K = np.array([float(k) for k in line[1:10]]).reshape(3, 3)      # matrix shape = 3*3
-            R = np.array([float(r) for r in line[10:19]]).reshape(3, 3)     # matrix shape = 3*3
-            t = np.array([float(t) for t in line[19:]])                     # matrix shape = 3*1
-            I_t = np.hstack((np.identity(3), np.transpose([t])))
-            P = np.dot(K, np.dot(R, I_t))
-            Ps.append(P)
-            Ks.append(K)
-    # all intrinsic parameters(Ks) are equal
-    return Ps, Ks, imgs_name
 
 
 def triangulate_point(pt1: np.ndarray, pt2: np.ndarray, P1: np.ndarray, P2: np.ndarray) -> np.ndarray:
@@ -87,28 +57,22 @@ def linear_triangulation(pts1: np.ndarray, pts2: np.ndarray, P1: np.ndarray, P2:
     return res
 
 
-def reconstruction_3d(path: str, par_file_name: str):
+def reconstruction_3d(path: str, Ps: List[np.ndarray], Ks: List[np.ndarray], imgs_name: List[str]):
     """
     :param path:          donde se encuentra el archivo de los parametros y las imagenes
-    :param par_file_name:
+    :param Ps:
+    :param Ks:
+    :param imgs_name:
     :return:
     """
-    # Loading matrix P and name images
-    Ps, Ks, imgs_name = load_parameters(path + par_file_name)
-
     num_imgs = len(imgs_name)
-    pts3D = np.array([[],[],[],[]])
-    for i in range(0, 1):
-        j = i + 1     # imagenes que usaremos
+    pts3D = [[], [], [], []]
+    for i in range(0, 16 - 1):
+        j = i + 1  # imagenes que usaremos
         img1_gray = cv2.imread(path + imgs_name[i], 0)
         img2_gray = cv2.imread(path + imgs_name[j], 0)
         # 'interest_points' return formatted points: [[x1, y1], [x2, y2], ...[xn, yn]]
-        pts1, pts2 = interest_points(img1_gray, img2_gray, ratio=0.8, num_max=500, display_matches='None')
-
-        '''img_c = copy.copy(img2_gray)
-        draw_points(img_c, pts2)
-        display_img(img_c, "draw points", use='pyplot')'''
-
+        pts1, pts2 = interest_points(img1_gray, img2_gray, ratio=0.8, num_max=500, display_matches='0')
         # we required formatted point: [[x1, x2, ...xn], [y1, y2, ...yn]]
         pts1, pts2 = pts1.T, pts2.T
         # homogeneous coordinates: [[x1, x2, ...xn], [y1, y2, ...yn], [1, 1, ...1]]
@@ -119,14 +83,24 @@ def reconstruction_3d(path: str, par_file_name: str):
         points2n = np.dot(np.linalg.inv(Ks[j]), points2)
 
         # ------------
-        P1 = Ps[i]  #np.array([[1, 0, 0, 0], [0, 1, 0, 0], [0, 0, 1, 0]])
+        P1 = Ps[i]  # np.array([[1, 0, 0, 0], [0, 1, 0, 0], [0, 0, 1, 0]])
         P2 = Ps[j]
 
         tripoints3d = linear_triangulation(points1n, points2n, P1, P2)
-        pts3D = np.hstack([pts3D, tripoints3d])
-    print(pts3D.shape)
 
-    '''fig = plt.figure()
+        # automatically center 3d object
+        x3d = np.array([(max(tripoints3d[0]) + min(tripoints3d[0])) / 2.] * len(tripoints3d[0]))
+        y3d = np.array([(max(tripoints3d[1]) + min(tripoints3d[1])) / 2.] * len(tripoints3d[1]))
+        z3d = np.array([(max(tripoints3d[2]) + min(tripoints3d[2])) / 2.] * len(tripoints3d[2]))
+        tripoints3d[0] = tripoints3d[0] - x3d
+        tripoints3d[1] = tripoints3d[1] - y3d
+        tripoints3d[2] = tripoints3d[2] - z3d
+
+        pts3D = np.hstack([pts3D, tripoints3d])
+        # print("Min: ", min(tripoints3d.T[2]),)
+        # print("Max: ", max(tripoints3d.T[2]),)
+
+    fig = plt.figure()
     fig.suptitle('3D reconstructed', fontsize=16)
     ax = fig.gca(projection='3d')
     ax.plot(pts3D[0], pts3D[1], pts3D[2], 'b.')
@@ -134,10 +108,7 @@ def reconstruction_3d(path: str, par_file_name: str):
     ax.set_ylabel('y axis')
     ax.set_zlabel('z axis')
     ax.view_init(elev=135, azim=90)
-    fig.show()
-    plt.show()'''
+    plt.show()
 
-    main_cube2(pts3D.T)
-
-    return None
+    return pts3D
 
