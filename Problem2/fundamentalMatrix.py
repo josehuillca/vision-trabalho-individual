@@ -17,7 +17,7 @@ def compute_f(img1_file: str, img2_file: str, alg: str, T: np.ndarray = None, dr
     img2 = cv2.imread(img2_file, 0)     # gray-scale
 
     if alg == '8_POINT':
-        pts1, pts2 = interest_points(img1, img2, ratio=0.4, num_max=24, display_matches='cv2')
+        pts1, pts2 = interest_points(img1, img2, ratio=0.7, num_max=300, display_matches='cv2')
         # F = compute_f_8point(pts1, pts2)
         F, _ = F_from_ransac(pts1.T, pts2.T)
     elif alg == 'RANSAC':

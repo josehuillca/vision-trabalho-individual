@@ -179,7 +179,7 @@ def draw_epipole_lines(img1: np.ndarray, img2: np.ndarray, pts1: np.ndarray, pts
 
     # Find epilines corresponding to points in left image (first image) and
     # drawing its lines on right image
-    lines2 = cv2.computeCorrespondEpilines(pts1.reshape(-1, 1, 2), 1, F)
+    lines2 = cv2.computeCorrespondEpilines(pts1.reshape(-1, 1, 2), 1, F.T)
     lines2 = lines2.reshape(-1, 3)
     img3, img4 = draw_lines(img2, img1, lines2, pts2, pts1)
 
