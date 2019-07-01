@@ -11,7 +11,7 @@ def execute_problem2():
     Ps, Ks, imgs_name = load_parameters(path + parameters_file)
 
     i, j = 0, 1
-    _ = compute_f(path + imgs_name[i], path + imgs_name[j], alg='8_POINT')
+    _ = compute_f(path + imgs_name[i], path + imgs_name[j], alg='RANSAC')
     #_ = reconstruction_3d(path, Ps, Ks, imgs_name)
     # ------------------------------
     print("Finish Problem 2! ...")

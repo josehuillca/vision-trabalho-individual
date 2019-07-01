@@ -1,7 +1,8 @@
 import cv2
 import numpy as np
-from Problem2.utils import interest_points, draw_epipole_lines, print_matrix
-from Problem2.norm_8_point_f import compute_f_8point, F_from_ransac
+from Problem2.utils import interest_points, draw_epipole_lines, print_matrix, cart2hom
+from Problem2.norm_8_point_f import compute_f_8point
+from Problem2.ransac_f import compute_f_ransac
     
 
 def compute_f(img1_file: str, img2_file: str, alg: str, T: np.ndarray = None, draw_epilines: bool = True) -> np.ndarray:
@@ -17,16 +18,18 @@ def compute_f(img1_file: str, img2_file: str, alg: str, T: np.ndarray = None, dr
     img2 = cv2.imread(img2_file, 0)     # gray-scale
 
     if alg == '8_POINT':
-        pts1, pts2 = interest_points(img1, img2, ratio=0.7, num_max=300, display_matches='cv2')
-        # F = compute_f_8point(pts1, pts2)
-        F, _ = F_from_ransac(pts1.T, pts2.T)
+        pts1, pts2 = interest_points(img1, img2, ratio=0.4, num_max=8, display_matches='cv2')
+        pts1_ = cart2hom(pts1.T)
+        pts2_ = cart2hom(pts2.T)
+        F = compute_f_8point(pts1_, pts2_)
+
     elif alg == 'RANSAC':
         pts1, pts2 = interest_points(img1, img2, ratio=0.7, num_max=300, display_matches='cv2')
-        F, mask = cv2.findFundamentalMat(pts1, pts2, cv2.FM_RANSAC)
+        F, _ = compute_f_ransac(pts1.T, pts2.T)
 
         # We select only inlier points
-        pts1 = pts1[mask.ravel() == 1]
-        pts2 = pts2[mask.ravel() == 1]
+        # pts1 = pts1[mask.ravel() == 1]
+        # pts2 = pts2[mask.ravel() == 1]
     else:
         print("WARNING: Algorithm('alg') can only be '8_POINT' or 'RANSAC'.")
         return np.array([])
