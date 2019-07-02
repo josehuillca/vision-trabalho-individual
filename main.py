@@ -3,6 +3,6 @@ from Problem2.main2 import execute_problem2
 
 
 if __name__ == "__main__":
-    execute_problem1()
+    execute_problem2()
     print("Finished all ...")
 

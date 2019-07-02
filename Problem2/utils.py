@@ -223,10 +223,15 @@ def load_parameters(file: str) -> Tuple[List[np.ndarray], List[np.ndarray], List
             K = np.array([float(k) for k in line[1:10]]).reshape(3, 3)      # matrix shape = 3*3
             R = np.array([float(r) for r in line[10:19]]).reshape(3, 3)     # matrix shape = 3*3
             t = np.array([float(t) for t in line[19:]])                     # matrix shape = 3*1
-            I_t = np.hstack((np.identity(3), np.transpose([t])))
-            P = np.dot(K, np.dot(R, I_t))
+            Rt = np.hstack((R, np.transpose([t])))
+            P = np.dot(K, Rt)
             Ps.append(P)
             Ks.append(K)
+            '''print_matrix(K, title="K")
+            print_matrix(R, title="R")
+            print("t:", t)
+            print_matrix(Rt, title="Rt")
+            break'''
     # all intrinsic parameters(Ks) are equal
     return Ps, Ks, imgs_name
 

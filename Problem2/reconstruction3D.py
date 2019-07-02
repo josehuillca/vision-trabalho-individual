@@ -67,7 +67,7 @@ def reconstruction_3d(path: str, Ps: List[np.ndarray], Ks: List[np.ndarray], img
     """
     num_imgs = len(imgs_name)
     pts3D = [[], [], [], []]
-    for i in range(0, 16 - 1):
+    for i in range(0, num_imgs - 1):
         j = i + 1  # imagenes que usaremos
         img1_gray = cv2.imread(path + imgs_name[i], 0)
         img2_gray = cv2.imread(path + imgs_name[j], 0)
@@ -79,9 +79,12 @@ def reconstruction_3d(path: str, Ps: List[np.ndarray], Ks: List[np.ndarray], img
         points1 = cart2hom(pts1)
         points2 = cart2hom(pts2)
         # normalizing coordinates
-        points1n = np.dot(np.linalg.inv(Ks[i]), points1)
-        points2n = np.dot(np.linalg.inv(Ks[j]), points2)
-
+        normalize = False
+        if normalize:
+            points1n = np.dot(np.linalg.inv(Ks[i]), points1)
+            points2n = np.dot(np.linalg.inv(Ks[j]), points2)
+        else:
+            points1n, points2n = points1, points2
         # ------------
         P1 = Ps[i]  # np.array([[1, 0, 0, 0], [0, 1, 0, 0], [0, 0, 1, 0]])
         P2 = Ps[j]
@@ -89,12 +92,12 @@ def reconstruction_3d(path: str, Ps: List[np.ndarray], Ks: List[np.ndarray], img
         tripoints3d = linear_triangulation(points1n, points2n, P1, P2)
 
         # automatically center 3d object
-        x3d = np.array([(max(tripoints3d[0]) + min(tripoints3d[0])) / 2.] * len(tripoints3d[0]))
+        '''x3d = np.array([(max(tripoints3d[0]) + min(tripoints3d[0])) / 2.] * len(tripoints3d[0]))
         y3d = np.array([(max(tripoints3d[1]) + min(tripoints3d[1])) / 2.] * len(tripoints3d[1]))
         z3d = np.array([(max(tripoints3d[2]) + min(tripoints3d[2])) / 2.] * len(tripoints3d[2]))
         tripoints3d[0] = tripoints3d[0] - x3d
         tripoints3d[1] = tripoints3d[1] - y3d
-        tripoints3d[2] = tripoints3d[2] - z3d
+        tripoints3d[2] = tripoints3d[2] - z3d'''
 
         pts3D = np.hstack([pts3D, tripoints3d])
         # print("Min: ", min(tripoints3d.T[2]),)
