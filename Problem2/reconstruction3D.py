@@ -9,7 +9,7 @@ if _platform == "darwin":
    matplotlib.use('MacOSX')
 from mpl_toolkits.mplot3d import Axes3D
 from typing import List, Tuple
-from Problem2.utils import print_matrix, interest_points, cart2hom, load_parameters
+from Problem2.utils import print_matrix, interest_points, cart2hom, load_parameters, select_inliers_points_within_img, get_all_points_matching
 from Problem2.opengl_examples.cube2 import main_cube2
 
 
@@ -67,43 +67,71 @@ def reconstruction_3d(path: str, Ps: List[np.ndarray], Ks: List[np.ndarray], img
     """
     num_imgs = len(imgs_name)
     pts3D = [[], [], [], []]
-    for i in range(0, num_imgs - 1):
+
+    # points1, points2 = [], []
+    # P1, P2 = [], []
+    for i in range(0, num_imgs-1, 1):
         j = i + 1  # imagenes que usaremos
         img1_gray = cv2.imread(path + imgs_name[i], 0)
         img2_gray = cv2.imread(path + imgs_name[j], 0)
-        # 'interest_points' return formatted points: [[x1, y1], [x2, y2], ...[xn, yn]]
-        pts1, pts2 = interest_points(img1_gray, img2_gray, ratio=0.8, num_max=500, display_matches='0')
-        # we required formatted point: [[x1, x2, ...xn], [y1, y2, ...yn]]
-        pts1, pts2 = pts1.T, pts2.T
-        # homogeneous coordinates: [[x1, x2, ...xn], [y1, y2, ...yn], [1, 1, ...1]]
-        points1 = cart2hom(pts1)
-        points2 = cart2hom(pts2)
-        # normalizing coordinates
-        normalize = False
-        if normalize:
-            points1n = np.dot(np.linalg.inv(Ks[i]), points1)
-            points2n = np.dot(np.linalg.inv(Ks[j]), points2)
+
+        # Preprocesing
+        p = 0.75  # Porcentaje del umbral a tomar en cuenta
+        th1, _ = cv2.threshold(img1_gray, 0, 255, cv2.THRESH_BINARY + cv2.THRESH_OTSU)
+        th2, _ = cv2.threshold(img2_gray, 0, 255, cv2.THRESH_BINARY + cv2.THRESH_OTSU)
+        th1, th2 = th1 * p, th2 * p
+        img1_gray[img1_gray < th1] = 0
+        img2_gray[img2_gray < th2] = 0
+
+        all_points = False
+        if all_points:
+            pts1, pts2 = get_all_points_matching(img1_gray, img2_gray)
         else:
-            points1n, points2n = points1, points2
-        # ------------
-        P1 = Ps[i]  # np.array([[1, 0, 0, 0], [0, 1, 0, 0], [0, 0, 1, 0]])
-        P2 = Ps[j]
+            # 'interest_points' return formatted points: [[x1, y1], [x2, y2], ...[xn, yn]]
+            pts1, pts2, _ = interest_points(img1_gray, img2_gray, ratio=0.7, num_max=500, display_matches='0')
+            #
+            # pts1, pts2 = select_inliers_points_within_img(img1_gray, img2_gray, pts1, pts2)
+        # Verificamos que haya puntos
+        if len(pts1) != 0:
+            # we required formatted point: [[x1, x2, ...xn], [y1, y2, ...yn]]
+            pts1, pts2 = pts1.T, pts2.T
+            # homogeneous coordinates: [[x1, x2, ...xn], [y1, y2, ...yn], [1, 1, ...1]]
+            points1 = cart2hom(pts1)
+            points2 = cart2hom(pts2)
+            # normalizing coordinates
+            normalize = False
+            if normalize:
+                points1n = np.dot(np.linalg.inv(Ks[i]), points1)
+                points2n = np.dot(np.linalg.inv(Ks[j]), points2)
+            else:
+                points1n, points2n = points1, points2
+            # ------------
+            P1 = Ps[i]  # np.array([[1, 0, 0, 0], [0, 1, 0, 0], [0, 0, 1, 0]])
+            P2 = Ps[j]
 
-        tripoints3d = linear_triangulation(points1n, points2n, P1, P2)
+            tripoints3d = linear_triangulation(points1n, points2n, P1, P2)
 
-        # automatically center 3d object
-        '''x3d = np.array([(max(tripoints3d[0]) + min(tripoints3d[0])) / 2.] * len(tripoints3d[0]))
-        y3d = np.array([(max(tripoints3d[1]) + min(tripoints3d[1])) / 2.] * len(tripoints3d[1]))
-        z3d = np.array([(max(tripoints3d[2]) + min(tripoints3d[2])) / 2.] * len(tripoints3d[2]))
-        tripoints3d[0] = tripoints3d[0] - x3d
-        tripoints3d[1] = tripoints3d[1] - y3d
-        tripoints3d[2] = tripoints3d[2] - z3d'''
+            # automatically center 3d object
+            '''x3d = np.array([(max(tripoints3d[0]) + min(tripoints3d[0])) / 2.] * len(tripoints3d[0]))
+            y3d = np.array([(max(tripoints3d[1]) + min(tripoints3d[1])) / 2.] * len(tripoints3d[1]))
+            z3d = np.array([(max(tripoints3d[2]) + min(tripoints3d[2])) / 2.] * len(tripoints3d[2]))
+            tripoints3d[0] = tripoints3d[0] - x3d
+            tripoints3d[1] = tripoints3d[1] - y3d
+            tripoints3d[2] = tripoints3d[2] - z3d'''
 
-        pts3D = np.hstack([pts3D, tripoints3d])
-        # print("Min: ", min(tripoints3d.T[2]),)
-        # print("Max: ", max(tripoints3d.T[2]),)
+            pts3D = np.hstack([pts3D, tripoints3d])
+            # print("Min: ", min(tripoints3d.T[2]),)
+            # print("Max: ", max(tripoints3d.T[2]),)
 
-    fig = plt.figure()
+
+    # Pasando Test de calidad x*P*X=0 e x'*P'X=0
+    '''print("x*PX=0 ")
+    a = np.dot(P1, np.transpose([pts3D.T[0]]))
+    r = np.cross(points1.T[0], np.array([a[0][0], a[1][0], a[2][0]]))
+    print(r)'''
+
+    # PLOT 3D POINTS
+    '''fig = plt.figure()
     fig.suptitle('3D reconstructed', fontsize=16)
     ax = fig.gca(projection='3d')
     ax.plot(pts3D[0], pts3D[1], pts3D[2], 'b.')
@@ -111,7 +139,7 @@ def reconstruction_3d(path: str, Ps: List[np.ndarray], Ks: List[np.ndarray], img
     ax.set_ylabel('y axis')
     ax.set_zlabel('z axis')
     ax.view_init(elev=135, azim=90)
-    plt.show()
+    plt.show()'''
 
     return pts3D
 

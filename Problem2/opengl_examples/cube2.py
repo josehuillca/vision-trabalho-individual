@@ -1,51 +1,8 @@
 import numpy as np
 import pygame
-from pygame.locals import *
 
 from OpenGL.GL import *
 from OpenGL.GLU import *
-
-verticies = (
-    (1, -1, -1),
-    (1, 1, -1),
-    (-1, 1, -1),
-    (-1, -1, -1),
-    (1, -1, 1),
-    (1, 1, 1),
-    (-1, -1, 1),
-    (-1, 1, 1)
-    )
-
-edges = (
-    (0,1),
-    (0,3),
-    (0,4),
-    (2,1),
-    (2,3),
-    (2,7),
-    (6,3),
-    (6,4),
-    (6,7),
-    (5,1),
-    (5,4),
-    (5,7)
-    )
-
-
-def Cube():
-    '''glBegin(GL_LINES)
-    for edge in edges:
-        for vertex in edge:
-            glVertex3fv(verticies[vertex])
-    glEnd()'''
-    NPOINTS = len(verticies)
-    glEnable(GL_PROGRAM_POINT_SIZE)
-    glPointSize(5.0)
-    for i in range(NPOINTS):
-        glBegin(GL_POINTS)
-        point = verticies[i]
-        glVertex3fv(point)
-        glEnd()
 
 
 def point_cloud(pts: np.ndarray, p_size: float = 2.0) -> None:
@@ -79,7 +36,7 @@ def main_cube2(pts):
     view_mat = IdentityMat44()
     glMatrixMode(GL_MODELVIEW)
     glLoadIdentity()
-    glTranslatef(0, 0, -0.001)
+    glTranslatef(0, 0, -0.4)
     glGetFloatv(GL_MODELVIEW_MATRIX, view_mat)
     glLoadIdentity()
 
@@ -101,9 +58,9 @@ def main_cube2(pts):
                 elif event.key == pygame.K_s:
                     tz = -0.01
                 elif event.key == pygame.K_RIGHT:
-                    ry = 0.1
+                    ry = 0.3
                 elif event.key == pygame.K_LEFT:
-                    ry = -0.1
+                    ry = -0.3
             elif event.type == pygame.KEYUP:
                 if event.key == pygame.K_a and tx > 0:
                     tx = 0
@@ -127,7 +84,6 @@ def main_cube2(pts):
         glGetFloatv(GL_MODELVIEW_MATRIX, view_mat)
 
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT)
-        #Cube()
         point_cloud(pts)
         glPopMatrix()
 

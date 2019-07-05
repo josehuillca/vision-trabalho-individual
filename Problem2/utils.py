@@ -105,16 +105,16 @@ def print_matrix(m: np.ndarray, head: np.ndarray = None, title: str = "", c_type
     print(table.draw())
 
 
-def interest_points(img1: np.ndarray, img2: np.ndarray, ratio: float, num_max: int = 8, display_matches: str = 'None') -> Tuple[Any, Any]:
+def interest_points(img1: np.ndarray, img2: np.ndarray, ratio: float, num_max: int = 8, display_matches: str = 'None') -> Tuple[Any, Any, Any]:
     """ Asumimos que sift nos dara mas de 'num=8' puntos de interes
     :param img1:            Input image  gray-scale
     :param img2:            Input image  gray-scale
     :param ratio:           ratio to search good matches 0-1
     :param num_max:             cantidad de puntos de interes a ser extraida
     :param display_matches: Draw matches
-    :return:                [[x1,y1], ...[xn,yn]], [[x'1,y'1], ...[x'n,y'n]]
+    :return:                [[x1,y1], ...[xn,yn]], [[x'1,y'1], ...[x'n,y'n]] and Homography matrix
     """
-    sift = cv2.xfeatures2d.SIFT_create()
+    sift = cv2.xfeatures2d.SURF_create()
 
     # find the keypoints and descriptors with SIFT
     kp1, des1 = sift.detectAndCompute(img1, None)
@@ -147,7 +147,7 @@ def interest_points(img1: np.ndarray, img2: np.ndarray, ratio: float, num_max: i
     pts2 = np.int32(pts2)
 
     # Constrain matches to fit homography
-    _, mask = cv2.findHomography(pts1, pts2, cv2.RANSAC, 100.0)
+    H, mask = cv2.findHomography(pts1, pts2, cv2.RANSAC, 100.0)
     mask = mask.ravel()
 
     # We select only inlier points
@@ -159,7 +159,56 @@ def interest_points(img1: np.ndarray, img2: np.ndarray, ratio: float, num_max: i
         im_matches = cv2.drawMatchesKnn(img1, kp1, img2, kp2, good, None, flags=2)
         display_img(im_matches, "Matches", (600 * 2, 600), use=display_matches)
     print("Number of interest point obtained: ", len(pts1))
-    return pts1, pts2
+    return pts1, pts2, H
+
+
+def select_inliers_points_within_img(img1: np.ndarray, img2: np.ndarray, pt1: np.ndarray, pt2: np.ndarray) -> Tuple[Any, Any]:
+    """ Los pixeles que sean menores que un umbral en la imagen no se cuentan
+    :param img1:
+    :param img2:
+    :param pt1:
+    :param pt2:
+    :return:
+    """
+    p = 0.75    # Porcentaje del umbral a tomar en cuenta
+    th1, _ = cv2.threshold(img1, 0, 255, cv2.THRESH_BINARY + cv2.THRESH_OTSU)
+    th2, _ = cv2.threshold(img2, 0, 255, cv2.THRESH_BINARY + cv2.THRESH_OTSU)
+    th1, th2 = th1*p, th2*p
+
+    pts1 = []
+    pts2 = []
+    # asumimos que pt1 y pt2 tienen la misma longitud
+    for i in range(0, len(pt1)):
+        x, y = pt1[i][0], pt1[i][1]
+        x_, y_ = pt2[i][0], pt2[i][1]
+        if img1[y, x] > th1 or img2[y_, x_] > th2:
+            pts1.append(pt1[i])
+            pts2.append(pt2[i])
+    print("Numero de puntos restantes: ", len(pts1))
+    return np.array(pts1), np.array(pts2)
+
+
+def get_all_points_matching(img1: np.ndarray, img2: np.ndarray) -> Tuple[Any, Any]:
+    _, _, H = interest_points(img1, img2, ratio=0.8, num_max=500)
+    pts1 = []
+    pts2 = []
+    ITER_MIN = 25
+
+    p = 0.75  # Porcentaje del umbral a tomar en cuenta
+    th1, _ = cv2.threshold(img1, 0, 255, cv2.THRESH_BINARY + cv2.THRESH_OTSU)
+    th1 = th1 * p
+    # asumimos que las dos imagenes tienen las mismas dimensiones
+    h, w = img1.shape
+    for y in range(0, h, ITER_MIN):
+        for x in range(0, w, ITER_MIN):
+            if img1[y, x] > th1:
+                x_ = np.dot(H, np.array([[x, y, 1]]).T)  # retorna [[x_,y_,w_]]
+                x_ = x_.T[0]
+                x_ = x_/x_[2]
+                pts2.append(x_[:2])
+                pts1.append([x, y])
+
+    return np.array(pts1), np.array(pts2)
 
 
 def draw_epipole_lines(img1: np.ndarray, img2: np.ndarray, pts1: np.ndarray, pts2: np.ndarray, F: np.ndarray) -> None:

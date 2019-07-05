@@ -107,3 +107,6 @@ venv.bak/
 .idea/misc.xml
 .idea/vision-trabalho-individual.iml
 .idea/workspace.xml
+
+Problem2/data/dinoRing/*
+Problem2/data/templeRing/*

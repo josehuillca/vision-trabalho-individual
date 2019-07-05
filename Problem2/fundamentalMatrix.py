@@ -18,13 +18,13 @@ def compute_f(img1_file: str, img2_file: str, alg: str, T: np.ndarray = None, dr
     img2 = cv2.imread(img2_file, 0)     # gray-scale
 
     if alg == '8_POINT':
-        pts1, pts2 = interest_points(img1, img2, ratio=0.4, num_max=8, display_matches='cv2')
+        pts1, pts2, _ = interest_points(img1, img2, ratio=0.4, num_max=8, display_matches='cv2')
         pts1_ = cart2hom(pts1.T)
         pts2_ = cart2hom(pts2.T)
         F = compute_f_8point(pts1_, pts2_)
 
     elif alg == 'RANSAC':
-        pts1, pts2 = interest_points(img1, img2, ratio=0.7, num_max=300, display_matches='cv2')
+        pts1, pts2, _ = interest_points(img1, img2, ratio=0.7, num_max=300, display_matches='cv2')
         F, _ = compute_f_ransac(pts1.T, pts2.T)
 
         # We select only inlier points
