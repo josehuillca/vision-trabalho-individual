@@ -7,17 +7,18 @@ import cv2, numpy as np
 
 def execute_problem2():
     dataset = 'dino'
-    path = "Problem2/data/" + dataset + "SparseRing/"   # "Problem2/data/templeSparseRing/"
+    path = "Problem2/data/" + dataset + "Ring/"   # "Problem2/data/templeSparseRing/"
 
     # Loading matrix P and name images
-    parameters_file = dataset + 'SR_par.txt'
+    parameters_file = dataset + 'R_par.txt'
     Ps, Ks, imgs_name = load_parameters(path + parameters_file)
     # print_matrix(Ps[0], title="Ps0")
 
-    i, j = 0, 1
-    # _ = compute_f(path + imgs_name[i], path + imgs_name[j], alg='RANSAC')
+    i,j = 0, 1  # indices de las images a usar
+    # Calculando a matriz fundamental
+    #_ = compute_f(path + imgs_name[i], path + imgs_name[j], alg='RANSAC')
     pts3D = reconstruction_3d(path, Ps, Ks, imgs_name)
-    print(pts3D.T[:3])
+    print("Exemplo dos puntos ·D:", pts3D.T[:3])
     main_cube2(pts3D.T)
     # ------------------------------
     print("Finish Problem 2! ...")

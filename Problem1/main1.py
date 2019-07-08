@@ -3,7 +3,7 @@ import time
 import numpy as np
 import progressbar
 
-from math import sqrt
+from math import sqrt, inf
 from typing import Tuple
 from Problem1.utils import display_img, crop_img, WriteFilePFM, save_pfm
 from skimage.measure import compare_ssim as ssim
@@ -83,12 +83,12 @@ def disparity_map(img1: np.ndarray, img2: np.ndarray, ndisp: int, janela: Tuple[
     :param norm: (BOOL)normalized gray images
     :return:
     """
-    img_l = cv2.cvtColor(img1, cv2.COLOR_BGR2GRAY)       # Image Left
-    img_r = cv2.cvtColor(img2, cv2.COLOR_BGR2GRAY)       # Image Right
+    img_r = cv2.cvtColor(img1, cv2.COLOR_BGR2GRAY)       # Image Right
+    img_l = cv2.cvtColor(img2, cv2.COLOR_BGR2GRAY)       # Image Left
 
     jy, jx = janela[0], janela[1]                        # height and width of the janela
     h, w = img_r.shape                                   # height and width of the image Right
-    disp_map = np.zeros(img_r.shape, dtype="float32")    # matrix that will contain the disparity map
+    disp_map = np.zeros(img_r.shape, dtype="float32")    # matrix that will contain the disparity map dtype("float32")
     # 'iter' number of pixels that the window advances in the img_r; do not confuse with the search window (img_l)
     iter = ITER_MIN
 
@@ -107,11 +107,11 @@ def disparity_map(img1: np.ndarray, img2: np.ndarray, ndisp: int, janela: Tuple[
     for y in range(0, h-jy+1, min(iter, jy)):
         for x in range(0, w-jx+1, min(iter, jx)):
             window_r = crop_img(img_r, (y, x), janela)
-            SM = 9999       # init value of Similarity Measure
+            SM = inf       # init value of Similarity Measure
             disp_val = 0    # disparity value
             # Scrolling through the search window
-            #for x_ in range(x + jx, min(w - jx, x + ndisp)):
-            for x_ in range(x, min(w - jx, x + ndisp)):
+            for x_ in range(min(x + jx, w-jx), max(-1, x - ndisp), -1):
+            #for x_ in range(x, min(w - jx, x + ndisp)):
                 window_l = crop_img(img_l, (y, x_), janela)
                 result_SM = SM_algorithm(window_r, window_l, SMA)
                 if result_SM < SM:
@@ -130,6 +130,13 @@ def disparity_map(img1: np.ndarray, img2: np.ndarray, ndisp: int, janela: Tuple[
     return disp_map
 
 
+def load_ndisp(file: str) -> int:
+    lines = [line.rstrip('\n') for line in open(file, 'r+')]
+    ndisp_pos = 6
+    line_ndisp = lines[ndisp_pos].split('=')
+    return int(line_ndisp[1])
+
+
 def execute_problem1():
     path = "Problem1/data/Motorcycle/"   # Motorcycle-imperfect
     img1_name = "im0.png"
@@ -144,14 +151,18 @@ def execute_problem1():
     # display_img(images_bgr, "[ %s, %s and addWeight]" % (img1_name, img2_name), (1200, 400))
 
     # NECESITO Leer el archivo calib.txt para obtener el ndisp automatico
-
-    start = time.time()
-    disp_map = disparity_map(img1, img2, ndisp=69, janela=(15, 15), SMA="SSIM", norm=False)
-    end = time.time()
-    print("Time Taken : ~ %.0f%s%.2f %s" % ((end - start) // 60, ":", (end - start) % 60, "sec"))
-
-    #display_img(disp_map, "Disparity Map", (600, 600))  # si la imagen tiene dtype='float32' no es posible mostrar
-    WriteFilePFM(disp_map, disp_map.shape[1], disp_map.shape[0], path + "disp0.pfm")
+    ndisp = load_ndisp(path + '/calib.txt')
+    metodo = 'SSD'
+    janelas = [1, 3, 5, 7]
+    for j in janelas:
+        start = time.time()
+        disp_map = disparity_map(img1, img2, ndisp=ndisp, janela=(j, j), SMA=metodo, norm=False)
+        end = time.time()
+        print("Time Taken : ~ %.0f%s%.2f %s" % ((end - start) // 60, ":", (end - start) % 60, "sec"))
+        disp_map = cv2.medianBlur(disp_map, 3)
+        #display_img(disp_map, "Disparity Map", (600, 600))  # si la imagen tiene dtype='float32' no es posible mostrar
+        WriteFilePFM(disp_map, disp_map.shape[1], disp_map.shape[0], path + "disp_" + str(j) + "x" +str(j) +"_"+metodo+".pfm")
     print("Finished Problem 1...")
 
 
+# 0.33, 0.55, 11.36

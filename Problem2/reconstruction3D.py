@@ -88,7 +88,7 @@ def reconstruction_3d(path: str, Ps: List[np.ndarray], Ks: List[np.ndarray], img
             pts1, pts2 = get_all_points_matching(img1_gray, img2_gray)
         else:
             # 'interest_points' return formatted points: [[x1, y1], [x2, y2], ...[xn, yn]]
-            pts1, pts2, _ = interest_points(img1_gray, img2_gray, ratio=0.7, num_max=500, display_matches='0')
+            pts1, pts2, _ = interest_points(img1_gray, img2_gray, ratio=0.65, num_max=500, display_matches='0')
             #
             # pts1, pts2 = select_inliers_points_within_img(img1_gray, img2_gray, pts1, pts2)
         # Verificamos que haya puntos

@@ -27,9 +27,6 @@ def compute_f(img1_file: str, img2_file: str, alg: str, T: np.ndarray = None, dr
         pts1, pts2, _ = interest_points(img1, img2, ratio=0.7, num_max=300, display_matches='cv2')
         F, _ = compute_f_ransac(pts1.T, pts2.T)
 
-        # We select only inlier points
-        # pts1 = pts1[mask.ravel() == 1]
-        # pts2 = pts2[mask.ravel() == 1]
     else:
         print("WARNING: Algorithm('alg') can only be '8_POINT' or 'RANSAC'.")
         return np.array([])
