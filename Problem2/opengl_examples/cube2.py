@@ -5,11 +5,12 @@ from OpenGL.GL import *
 from OpenGL.GLU import *
 
 
-def point_cloud(pts: np.ndarray, p_size: float = 2.0) -> None:
+def point_cloud(pts: np.ndarray, cors, p_size: float = 2.) -> None:
     NPOINTS = len(pts)
     glEnable(GL_PROGRAM_POINT_SIZE)
     glPointSize(p_size)
     for i in range(NPOINTS):
+        glColor3f(cors[i][0], cors[i][1], cors[i][2])
         glBegin(GL_POINTS)
         point = tuple(pts[i][:3])
         glVertex3fv(point)
@@ -20,7 +21,7 @@ def IdentityMat44():
     return np.matrix(np.identity(4), copy=False, dtype='float32')
 
 
-def main_cube2(pts):
+def main_cube2(pts, cors):
     pygame.init()
     display = (600,600)
     pygame.display.set_mode(display, pygame.DOUBLEBUF|pygame.OPENGL)
@@ -58,9 +59,9 @@ def main_cube2(pts):
                 elif event.key == pygame.K_s:
                     tz = -0.01
                 elif event.key == pygame.K_RIGHT:
-                    ry = 0.3
+                    ry = 1.0
                 elif event.key == pygame.K_LEFT:
-                    ry = -0.3
+                    ry = -1.0
             elif event.type == pygame.KEYUP:
                 if event.key == pygame.K_a and tx > 0:
                     tx = 0
@@ -84,7 +85,7 @@ def main_cube2(pts):
         glGetFloatv(GL_MODELVIEW_MATRIX, view_mat)
 
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT)
-        point_cloud(pts)
+        point_cloud(pts, cors)
         glPopMatrix()
 
         pygame.display.flip()

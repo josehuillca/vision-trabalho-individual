@@ -2,6 +2,8 @@ import numpy as np
 import cv2
 import copy
 import matplotlib.pyplot as plt
+from matplotlib import cm
+import matplotlib.tri as mtri
 from sys import platform as _platform
 if _platform == "darwin":
    # MAC OS X
@@ -130,16 +132,55 @@ def reconstruction_3d(path: str, Ps: List[np.ndarray], Ks: List[np.ndarray], img
     r = np.cross(points1.T[0], np.array([a[0][0], a[1][0], a[2][0]]))
     print(r)'''
 
+    #eliminamos los puntos demasiado lejanos, SOLO PARA TEMPLE, VIENDO LOS LIMITES CON PYPLOT3D
+    print(max(pts3D[2]), min(pts3D[2]))
+    min_z = -0.09
+    max_z = -0.01
+    min_x = -0.038
+    max_x = 0.082
+    pts3D_ = []
+    for i in range(len(pts3D[0])):
+        if min_z<pts3D[2][i]<max_z and min_x<pts3D[0][i]<max_x:
+            pts3D_.append([pts3D[0][i], pts3D[1][i], pts3D[2][i]])
+    pts3D_ = np.array(pts3D_)
+    pts3D = pts3D_.T
+
+    # Colocar colores a los puntos RGB
+    colors = []
+    corR_l = []
+    minz = min(pts3D[2])
+    maxz = max(pts3D[2])
+    for i in range(len(pts3D[2])):
+        z = pts3D[2][i]
+        corR = (z - minz) / (maxz - minz)
+        corR_l.append(corR)
+        colors.append([corR, corR/2., 1-corR])
+    print(max(colors), min(colors))
+
     # PLOT 3D POINTS
-    '''fig = plt.figure()
+    fig = plt.figure()
     fig.suptitle('3D reconstructed', fontsize=16)
     ax = fig.gca(projection='3d')
-    ax.plot(pts3D[0], pts3D[1], pts3D[2], 'b.')
+
+    # Create the Triangulation; no triangles so Delaunay triangulation created.
+    '''triang = mtri.Triangulation(pts3D[0], pts3D[1])
+    # Mask off unwanted triangles.
+    min_radius = 0.015
+    xmid = pts3D[0][triang.triangles].mean(axis=1)
+    ymid = pts3D[1][triang.triangles].mean(axis=1)
+    mask = np.where(xmid ** 2 + ymid ** 2 < min_radius ** 2, 1, 0)
+    triang.set_mask(mask)
+    ax.plot_trisurf(triang, pts3D[2], cmap=plt.cm.CMRmap)'''
+
+    #for i in range(len(pts3D[0])):
+    ax.scatter(pts3D[0], pts3D[1], pts3D[2], c=corR_l, cmap='viridis', s=1.8, linewidth=0.5)
+    #ax.plot(pts3D[0], pts3D[1], pts3D[2], c=colors)
+
     ax.set_xlabel('x axis')
     ax.set_ylabel('y axis')
     ax.set_zlabel('z axis')
     ax.view_init(elev=135, azim=90)
-    plt.show()'''
+    plt.show()
 
-    return pts3D
+    return pts3D, colors
 

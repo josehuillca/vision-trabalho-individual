@@ -6,7 +6,7 @@ import cv2, numpy as np
 
 
 def execute_problem2():
-    dataset = 'dino'
+    dataset = 'temple'
     path = "Problem2/data/" + dataset + "Ring/"   # "Problem2/data/templeSparseRing/"
 
     # Loading matrix P and name images
@@ -17,9 +17,9 @@ def execute_problem2():
     i,j = 0, 1  # indices de las images a usar
     # Calculando a matriz fundamental
     #_ = compute_f(path + imgs_name[i], path + imgs_name[j], alg='RANSAC')
-    pts3D = reconstruction_3d(path, Ps, Ks, imgs_name)
+    pts3D, colors = reconstruction_3d(path, Ps, Ks, imgs_name, dataset)     # aun no tiene de forma automatica limitar los puntos, dependiendo del data set
     print("Exemplo dos puntos ·D:", pts3D.T[:3])
-    main_cube2(pts3D.T)
+    #main_cube2(pts3D.T, colors)
     # ------------------------------
     print("Finish Problem 2! ...")
 
