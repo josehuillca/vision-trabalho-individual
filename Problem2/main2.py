@@ -7,7 +7,7 @@ import cv2, numpy as np
 
 def execute_problem2():
     dataset = 'temple'
-    path = "Problem2/data/" + dataset + "Ring/"   # "Problem2/data/templeSparseRing/"
+    path = "Problem2/data/" + dataset + "ring/"   # "Problem2/data/templeSparseRing/"
 
     # Loading matrix P and name images
     parameters_file = dataset + 'R_par.txt'

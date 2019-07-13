@@ -59,12 +59,13 @@ def linear_triangulation(pts1: np.ndarray, pts2: np.ndarray, P1: np.ndarray, P2:
     return res
 
 
-def reconstruction_3d(path: str, Ps: List[np.ndarray], Ks: List[np.ndarray], imgs_name: List[str]):
+def reconstruction_3d(path: str, Ps: List[np.ndarray], Ks: List[np.ndarray], imgs_name: List[str], dataset: str):
     """
     :param path:          donde se encuentra el archivo de los parametros y las imagenes
     :param Ps:
     :param Ks:
     :param imgs_name:
+    :param dataset:  solo sirve para limitar los puntos segun el dataset, se puede hacer auto-despues
     :return:
     """
     num_imgs = len(imgs_name)
@@ -113,14 +114,6 @@ def reconstruction_3d(path: str, Ps: List[np.ndarray], Ks: List[np.ndarray], img
 
             tripoints3d = linear_triangulation(points1n, points2n, P1, P2)
 
-            # automatically center 3d object
-            '''x3d = np.array([(max(tripoints3d[0]) + min(tripoints3d[0])) / 2.] * len(tripoints3d[0]))
-            y3d = np.array([(max(tripoints3d[1]) + min(tripoints3d[1])) / 2.] * len(tripoints3d[1]))
-            z3d = np.array([(max(tripoints3d[2]) + min(tripoints3d[2])) / 2.] * len(tripoints3d[2]))
-            tripoints3d[0] = tripoints3d[0] - x3d
-            tripoints3d[1] = tripoints3d[1] - y3d
-            tripoints3d[2] = tripoints3d[2] - z3d'''
-
             pts3D = np.hstack([pts3D, tripoints3d])
             # print("Min: ", min(tripoints3d.T[2]),)
             # print("Max: ", max(tripoints3d.T[2]),)
@@ -134,10 +127,20 @@ def reconstruction_3d(path: str, Ps: List[np.ndarray], Ks: List[np.ndarray], img
 
     #eliminamos los puntos demasiado lejanos, SOLO PARA TEMPLE, VIENDO LOS LIMITES CON PYPLOT3D
     print(max(pts3D[2]), min(pts3D[2]))
-    min_z = -0.09
-    max_z = -0.01
-    min_x = -0.038
-    max_x = 0.082
+    if dataset == 'temple':
+        '''min_z = -0.09
+        max_z = -0.01
+        min_x = -0.038
+        max_x = 0.082'''
+        min_z = -0.055
+        max_z = 0.025
+        min_x = -0.038
+        max_x = 0.057
+    else:  # dataset == 'dino':
+        min_z = -0.03
+        max_z = 0.06
+        min_x = -0.02
+        max_x = 0.06
     pts3D_ = []
     for i in range(len(pts3D[0])):
         if min_z<pts3D[2][i]<max_z and min_x<pts3D[0][i]<max_x:
@@ -161,11 +164,12 @@ def reconstruction_3d(path: str, Ps: List[np.ndarray], Ks: List[np.ndarray], img
     fig = plt.figure()
     fig.suptitle('3D reconstructed', fontsize=16)
     ax = fig.gca(projection='3d')
+    #ax.set_aspect('equal')
 
     # Create the Triangulation; no triangles so Delaunay triangulation created.
-    '''triang = mtri.Triangulation(pts3D[0], pts3D[1])
+    triang = mtri.Triangulation(pts3D[0], pts3D[1])
     # Mask off unwanted triangles.
-    min_radius = 0.015
+    '''min_radius = 0.0025
     xmid = pts3D[0][triang.triangles].mean(axis=1)
     ymid = pts3D[1][triang.triangles].mean(axis=1)
     mask = np.where(xmid ** 2 + ymid ** 2 < min_radius ** 2, 1, 0)
@@ -173,13 +177,22 @@ def reconstruction_3d(path: str, Ps: List[np.ndarray], Ks: List[np.ndarray], img
     ax.plot_trisurf(triang, pts3D[2], cmap=plt.cm.CMRmap)'''
 
     #for i in range(len(pts3D[0])):
-    ax.scatter(pts3D[0], pts3D[1], pts3D[2], c=corR_l, cmap='viridis', s=1.8, linewidth=0.5)
+    surf = ax.scatter(pts3D[0], pts3D[1], pts3D[2], c=corR_l, cmap='viridis', s=2.8, linewidth=0.05)
     #ax.plot(pts3D[0], pts3D[1], pts3D[2], c=colors)
 
     ax.set_xlabel('x axis')
     ax.set_ylabel('y axis')
     ax.set_zlabel('z axis')
     ax.view_init(elev=135, azim=90)
+
+    fig.colorbar(surf)
+    if dataset == 'temple':
+        '''ax.set_xlim(-0.05, 0.1)
+        ax.set_ylim(-0.05, 0.13)
+        ax.set_zlim(-0.09, 0.0)'''
+        ax.set_xlim(-0.05, 0.06)
+        ax.set_ylim(-0.002, 0.2)
+        ax.set_zlim(-0.04, 0.04)
     plt.show()
 
     return pts3D, colors
